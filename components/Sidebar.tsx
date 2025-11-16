@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, RefreshCw, SlidersHorizontal, ClipboardList, Info, ExternalLink, Palette } from 'lucide-react';
+import { X, RefreshCw, SlidersHorizontal, ClipboardList, Info, ExternalLink, Palette, KeyRound } from 'lucide-react';
 import { GenerationConfig, BackgroundStyle, GradientConfig, PatternConfig } from '../types';
 import { defaultGenerationConfig, defaultExtraPrompt } from '../config/defaults';
 import BackgroundSelector from './BackgroundSelector';
@@ -18,6 +18,8 @@ interface SidebarProps {
   setPatternConfig: (config: PatternConfig) => void;
   customImageUrl: string | null;
   setCustomImageUrl: (url: string | null) => void;
+  customApiKey: string;
+  setCustomApiKey: (key: string) => void;
 }
 
 const DefaultValue = ({ label, value }: { label: string, value: string | number }) => (
@@ -34,9 +36,11 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     config, 
     setConfig, 
     onResetToDefaults,
+    customApiKey,
+    setCustomApiKey,
   } = props;
 
-  const [activeTab, setActiveTab] = useState<'advanced' | 'defaults' | 'theme'>('advanced');
+  const [activeTab, setActiveTab] = useState<'advanced' | 'api' | 'theme' | 'defaults'>('advanced');
   
   const handleRandomizeSeed = () => {
     setConfig({ ...config, seed: Math.floor(Math.random() * 1000000) });
@@ -53,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="sidebar-title"
-        className={`fixed top-0 right-0 h-full w-full max-w-sm bg-base-100 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex justify-between items-center p-4 border-b border-base-300">
           <h2 id="sidebar-title" className="text-2xl font-bold">Settings</h2>
@@ -64,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
         
         {/* Tabs */}
         <div className="border-b border-base-300 px-2 sm:px-4">
-            <nav className="-mb-px flex space-x-4" aria-label="Tabs">
+            <nav className="-mb-px flex space-x-2" aria-label="Tabs">
                 <button
                     onClick={() => setActiveTab('advanced')}
                     className={`flex items-center whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'advanced' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-base-content-secondary hover:text-base-content hover:border-base-content-secondary'}`}
@@ -72,12 +76,12 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     <SlidersHorizontal className="mr-2 h-5 w-5" />
                     <span>Advanced</span>
                 </button>
-                <button
-                    onClick={() => setActiveTab('defaults')}
-                     className={`flex items-center whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'defaults' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-base-content-secondary hover:text-base-content hover:border-base-content-secondary'}`}
+                 <button
+                    onClick={() => setActiveTab('api')}
+                     className={`flex items-center whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'api' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-base-content-secondary hover:text-base-content hover:border-base-content-secondary'}`}
                 >
-                    <ClipboardList className="mr-2 h-5 w-5" />
-                    <span>Defaults</span>
+                    <KeyRound className="mr-2 h-5 w-5" />
+                    <span>API</span>
                 </button>
                  <button
                     onClick={() => setActiveTab('theme')}
@@ -85,6 +89,13 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 >
                     <Palette className="mr-2 h-5 w-5" />
                     <span>Theme</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('defaults')}
+                     className={`flex items-center whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'defaults' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-base-content-secondary hover:text-base-content hover:border-base-content-secondary'}`}
+                >
+                    <ClipboardList className="mr-2 h-5 w-5" />
+                    <span>Defaults</span>
                 </button>
             </nav>
         </div>
@@ -154,45 +165,56 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 />
                  <p className="text-xs text-base-content-secondary mt-1">Limits the prediction to the K most likely tokens.</p>
               </div>
+            </div>
+          )}
+          {activeTab === 'api' && (
+             <div className="p-6 space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-base-content flex items-center gap-2 mb-2">
+                  <KeyRound className="h-5 w-5" />
+                  Custom API Key
+                </h3>
+                <p className="text-xs text-base-content-secondary mb-3">
+                  Optionally use your own Gemini API key. Your key is only used in your browser for this session and is never saved.
+                </p>
+                <div className="relative">
+                  <input
+                    type="password"
+                    placeholder="Enter your Gemini API key"
+                    value={customApiKey}
+                    onChange={(e) => setCustomApiKey(e.target.value)}
+                    className="w-full pl-3 pr-10 py-2 text-base bg-base-200 border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
+                  />
+                  {customApiKey && (
+                    <button 
+                      onClick={() => setCustomApiKey('')} 
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-base-content-secondary hover:text-white"
+                      title="Clear API Key"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+                {customApiKey ? (
+                  <p className="text-xs text-green-400 mt-1">Custom API key is active for this session.</p>
+                ) : (
+                  <p className="text-xs text-base-content-secondary mt-1">Using the site's default API key.</p>
+                )}
+              </div>
 
-              <div className="border-t border-base-300 !mt-8 pt-6">
+               <div className="border-t border-base-300 !mt-6 pt-6">
                 <h3 className="text-lg font-semibold text-base-content flex items-center gap-2 mb-2">
                   <Info className="h-5 w-5" />
                   API Usage & Limits
                 </h3>
-                <p className="text-sm text-base-content-secondary">
-                  This app uses the Gemini API free tier. Exceeding these limits may result in temporary errors. Your usage is tied to your Google Account.
-                </p>
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <h4 className="font-semibold text-sm text-base-content">Rate Limits (Per Minute)</h4>
-                    <div className="mt-1 space-y-1 text-xs text-base-content-secondary">
-                      <div className="flex justify-between items-center bg-base-200 p-2 rounded-md">
-                        <span><code className="bg-base-300/50 px-1 rounded">gemini-2.5-flash</code> (text)</span>
-                        <span className="font-mono font-semibold">1500 RPM</span>
-                      </div>
-                      <div className="flex justify-between items-center bg-base-200 p-2 rounded-md">
-                        <span><code className="bg-base-300/50 px-1 rounded">gemini-2.5-flash-image</code></span>
-                        <span className="font-mono font-semibold">100 RPM</span>
-                      </div>
-                    </div>
-                  </div>
-                   <div>
-                    <h4 className="font-semibold text-sm text-base-content">Daily Limits (Free Tier)</h4>
-                    <div className="mt-1 space-y-1 text-xs text-base-content-secondary">
-                      <div className="flex justify-between items-center bg-base-200 p-2 rounded-md">
-                        <span><code className="bg-base-300/50 px-1 rounded">gemini-2.5-flash</code> (text)</span>
-                        <span className="font-mono font-semibold">1,000,000 RPD</span>
-                      </div>
-                      <div className="flex justify-between items-center bg-base-200 p-2 rounded-md">
-                        <span><code className="bg-base-300/50 px-1 rounded">gemini-2.5-flash-image</code></span>
-                        <span className="font-mono font-semibold">20,000 RPD</span>
-                      </div>
-                    </div>
-                  </div>
+                <div className="bg-base-200 p-3 rounded-lg border border-base-300 mb-4">
+                  <h4 className="font-semibold text-sm text-base-content">Daily Generation Limit</h4>
+                  <p className="text-xs text-base-content-secondary mt-1">
+                    To ensure fair use with the site's API key, there is a limit of 10 generations per user, per day. This is tracked using a cookie in your browser and resets automatically.
+                  </p>
                 </div>
-                <p className="text-xs text-base-content-secondary mt-3">
-                  Note: The API does not provide real-time usage data. These are the total free tier limits. Click below to view your current usage.
+                <p className="text-sm text-base-content-secondary">
+                  The application's shared API key operates within the Gemini API free tier. For high-volume usage, it's recommended to use your own API key with billing enabled.
                 </p>
                 <a 
                   href="https://ai.google.dev/gemini-api/docs/models/gemini#rate-limits"
@@ -201,7 +223,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                   className="w-full mt-4 flex items-center justify-center gap-2 font-semibold py-2 px-4 rounded-lg text-base-content transition-all duration-200 ease-in-out bg-base-300 hover:bg-brand-secondary hover:text-white"
                 >
                   <ExternalLink className="h-4 w-4" />
-                  Check Usage & Billing
+                  View Gemini API Limits
                 </a>
               </div>
             </div>

@@ -1,26 +1,28 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { generateThemedQRCode, getWebsiteTheme } from './services/geminiService';
 import { generateQRCodeFromURL, validateQRCode } from './utils/qrUtils';
-import { AppState, MimeType, QRSource, GenerationConfig, ValidationResult, BackgroundStyle, GradientConfig, PatternConfig } from './types';
+import { AppState, MimeType, GenerationConfig, ValidationResult, BackgroundStyle, GradientConfig, PatternConfig } from './types';
 import Header from './components/Header';
 import URLInput from './components/URLInput';
 import QRCodeUploader from './components/QRCodeUploader';
 import GeneratedQRCode from './components/GeneratedQRCode';
 import ImageCountSelector from './components/ImageCountSelector';
-import SourceSelector from './components/SourceSelector';
 import ExtraPromptInput from './components/ExtraPromptInput';
 import Sidebar from './components/Sidebar';
 import AdBanner from './components/AdBanner';
 import { Loader2, Wand2 } from 'lucide-react';
 import { defaultGenerationConfig, defaultExtraPrompt, defaultExtraPrompt2, defaultGradientConfig, defaultPatternConfig } from './config/defaults';
 import { hexToRgb } from './utils/colorUtils';
+import { setCookie, getCookie } from './utils/cookieUtils';
+
+const DAILY_LIMIT = 10;
+const COOKIE_NAME = 'qrThemerDailyLimit';
 
 const App: React.FC = () => {
-  const [qrCodeFile, setQrCodeFile] = useState<File | null>(null);
+  const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null);
   const [websiteUrl, setWebsiteUrl] = useState<string>('');
   const [numberOfImages, setNumberOfImages] = useState<number>(1);
   const [extraPrompt, setExtraPrompt] = useState<string>(defaultExtraPrompt2);
-  const [qrSource, setQrSource] = useState<QRSource>('upload');
   const [baseQrCode, setBaseQrCode] = useState<string | null>(null);
   
   const [generatedImages, setGeneratedImages] = useState<string[] | null>(null);
@@ -31,12 +33,41 @@ const App: React.FC = () => {
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [generationConfig, setGenerationConfig] = useState<GenerationConfig>(defaultGenerationConfig);
+  const [customApiKey, setCustomApiKey] = useState<string>('');
+  
+  // Daily limit state
+  const [dailyGenerationsLeft, setDailyGenerationsLeft] = useState<number>(DAILY_LIMIT);
   
   // Theme state
   const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>('default');
   const [gradientConfig, setGradientConfig] = useState<GradientConfig>(defaultGradientConfig);
   const [patternConfig, setPatternConfig] = useState<PatternConfig>(defaultPatternConfig);
   const [customImageUrl, setCustomImageUrl] = useState<string | null>(null);
+
+  // Effect to read the cookie on initial load
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const cookieValue = getCookie(COOKIE_NAME);
+    if (cookieValue) {
+        try {
+            const { count, lastReset } = JSON.parse(cookieValue);
+            if (lastReset === today) {
+                setDailyGenerationsLeft(count);
+            } else {
+                // It's a new day, reset the cookie
+                setCookie(COOKIE_NAME, JSON.stringify({ count: DAILY_LIMIT, lastReset: today }), 1);
+                setDailyGenerationsLeft(DAILY_LIMIT);
+            }
+        } catch (e) {
+            // Invalid cookie, reset it
+             setCookie(COOKIE_NAME, JSON.stringify({ count: DAILY_LIMIT, lastReset: today }), 1);
+             setDailyGenerationsLeft(DAILY_LIMIT);
+        }
+    } else {
+        // No cookie, user's first time or it expired
+        setDailyGenerationsLeft(DAILY_LIMIT);
+    }
+  }, []);
 
 
   useEffect(() => {
@@ -90,9 +121,9 @@ const App: React.FC = () => {
     setExtraPrompt(defaultExtraPrompt);
   }, []);
 
-  const handleFileChange = (file: File | null) => {
-    setQrCodeFile(file);
-    handleReset();
+  const handleReferenceImageChange = (file: File | null) => {
+    setReferenceImageFile(file);
+    // Do not reset the entire generation here, only if URL changes.
   };
 
   const handleUrlChange = (url: string) => {
@@ -102,24 +133,14 @@ const App: React.FC = () => {
   
   const handleImageCountChange = (count: number) => {
     setNumberOfImages(count);
-    handleReset();
+    // Only reset if images have already been generated
+    if (generatedImages) {
+        handleReset();
+    }
   };
 
-  const handleSourceChange = (source: QRSource) => {
-    setQrSource(source);
-    setQrCodeFile(null); // Reset file input when switching
-    handleReset();
-  };
-
-  const getBaseQRCode = async (): Promise<{data: string, mimeType: MimeType}> => {
-    if (qrSource === 'upload' && qrCodeFile) {
-      const base64EncodedData = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-        reader.readAsDataURL(qrCodeFile);
-      });
-      return { data: base64EncodedData, mimeType: qrCodeFile.type as MimeType };
-    } else if (qrSource === 'generate' && websiteUrl) {
+  const getBaseQRCode = useCallback(async (): Promise<{data: string, mimeType: MimeType}> => {
+    if (websiteUrl) {
       if (baseQrCode) {
         return { data: baseQrCode, mimeType: 'image/png' };
       }
@@ -128,8 +149,8 @@ const App: React.FC = () => {
       setBaseQrCode(base64Data); // Cache the generated QR code
       return { data: base64Data, mimeType: 'image/png' };
     }
-    throw new Error("No valid QR code source found.");
-  };
+    throw new Error("No URL provided to generate QR code.");
+  }, [websiteUrl, baseQrCode]);
 
   const validateAndSetImages = async (base64Images: string[]) => {
     setGeneratedImages(base64Images);
@@ -147,24 +168,44 @@ const App: React.FC = () => {
     }
     setAppState(AppState.SUCCESS);
   };
+  
+  const getReferenceImage = useCallback(async (): Promise<{ data: string; mimeType: MimeType; } | undefined> => {
+      if (!referenceImageFile) return undefined;
+      
+      const base64EncodedData = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+        reader.readAsDataURL(referenceImageFile);
+      });
+      return { data: base64EncodedData, mimeType: referenceImageFile.type as MimeType };
+  }, [referenceImageFile]);
+
 
   const handleSubmit = useCallback(async () => {
     if (!websiteUrl) {
       setErrorMessage('Please enter a website URL.');
       return;
     }
-    if (qrSource === 'upload' && !qrCodeFile) {
-        setErrorMessage('Please upload a QR code image.');
-        return;
+    
+    if (dailyGenerationsLeft <= 0) {
+      setErrorMessage("You've reached your daily limit of 10 generations. Please try again tomorrow.");
+      return;
     }
 
     handleReset();
 
     try {
+      const today = new Date().toISOString().split('T')[0];
+      const newCount = dailyGenerationsLeft - 1;
+      setDailyGenerationsLeft(newCount);
+      setCookie(COOKIE_NAME, JSON.stringify({ count: newCount, lastReset: today }), 1);
+      
       const { data: qrCodeImageBase64, mimeType } = await getBaseQRCode();
       
       setAppState(AppState.LOADING_THEME);
-      const themeDescription = await getWebsiteTheme(websiteUrl);
+      const themeDescription = await getWebsiteTheme(websiteUrl, customApiKey || null);
+      
+      const referenceImage = await getReferenceImage();
 
       setAppState(AppState.LOADING_QR_CODE);
       const newImageBase64Array = await generateThemedQRCode(
@@ -173,7 +214,9 @@ const App: React.FC = () => {
         mimeType, 
         numberOfImages,
         generationConfig,
-        extraPrompt
+        extraPrompt,
+        customApiKey || null,
+        referenceImage
       );
       
       await validateAndSetImages(newImageBase64Array);
@@ -184,7 +227,7 @@ const App: React.FC = () => {
       setErrorMessage(`Generation failed: ${errorMessage}`);
       setAppState(AppState.ERROR);
     }
-  }, [qrCodeFile, websiteUrl, numberOfImages, qrSource, generationConfig, extraPrompt, handleReset]);
+  }, [websiteUrl, numberOfImages, generationConfig, extraPrompt, handleReset, customApiKey, getBaseQRCode, getReferenceImage, dailyGenerationsLeft]);
 
   const handleRegenerate = useCallback(async (indexToRegenerate: number) => {
     setErrorMessage('');
@@ -198,14 +241,18 @@ const App: React.FC = () => {
         return newResults;
       });
       
-      const themeDescription = await getWebsiteTheme(websiteUrl);
+      const themeDescription = await getWebsiteTheme(websiteUrl, customApiKey || null);
+      const referenceImage = await getReferenceImage();
+      
       const newImageBase64Array = await generateThemedQRCode(
         themeDescription, 
         qrCodeImageBase64, 
         mimeType, 
         1, // only generate one
         {...generationConfig, seed: Math.floor(Math.random() * 1000000)}, // use a new random seed
-        extraPrompt
+        extraPrompt,
+        customApiKey || null,
+        referenceImage
       );
 
       const newImageBase64 = newImageBase64Array[0];
@@ -228,7 +275,7 @@ const App: React.FC = () => {
         console.error(error);
         setErrorMessage(`Regeneration failed for image ${indexToRegenerate + 1}.`);
     }
-  }, [websiteUrl, qrSource, qrCodeFile, generationConfig, extraPrompt]);
+  }, [websiteUrl, generationConfig, extraPrompt, customApiKey, getBaseQRCode, getReferenceImage]);
 
   const isValidUrl = (url: string) => {
     try {
@@ -239,7 +286,7 @@ const App: React.FC = () => {
     }
   };
 
-  const isFormValid = (qrSource === 'upload' ? qrCodeFile !== null : true) && websiteUrl.length > 0 && isValidUrl(websiteUrl);
+  const isFormValid = websiteUrl.length > 0 && isValidUrl(websiteUrl);
   const isLoading = [
     AppState.GENERATING_BASE_QR,
     AppState.LOADING_THEME,
@@ -264,41 +311,37 @@ const App: React.FC = () => {
         setPatternConfig={setPatternConfig}
         customImageUrl={customImageUrl}
         setCustomImageUrl={setCustomImageUrl}
+        customApiKey={customApiKey}
+        setCustomApiKey={setCustomApiKey}
       />
 
       <main className="container mx-auto p-4 md:p-8">
         <div className="max-w-7xl mx-auto bg-base-100 rounded-2xl shadow-lg p-6 md:p-10">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
             {/* Input Column */}
-            <div className="lg:col-span-2 flex flex-col">
-              <div className="mb-6">
-                <SourceSelector source={qrSource} setSource={handleSourceChange} />
-              </div>
+            <div className="lg:col-span-2 flex flex-col space-y-6">
               
-              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${qrSource === 'upload' ? 'max-h-[320px] opacity-100 mb-6' : 'max-h-0 opacity-0 mb-0'}`}>
-                <QRCodeUploader onFileChange={handleFileChange} />
-              </div>
+              <URLInput 
+                value={websiteUrl} 
+                onChange={handleUrlChange}
+              />
 
-              <div className="mb-6">
-                <URLInput 
-                  value={websiteUrl} 
-                  onChange={handleUrlChange}
-                  source={qrSource}
-                />
-              </div>
+              <QRCodeUploader onFileChange={handleReferenceImageChange} />
 
-              <div className="mb-6">
-                <ImageCountSelector value={numberOfImages} onChange={handleImageCountChange} source={qrSource} />
-              </div>
+              <ImageCountSelector value={numberOfImages} onChange={handleImageCountChange} />
 
-              <div className="mb-6">
-                <ExtraPromptInput value={extraPrompt} onChange={setExtraPrompt} source={qrSource} />
-              </div>
+              <ExtraPromptInput value={extraPrompt} onChange={setExtraPrompt} />
               
+              <div className="text-center -mt-2 px-2">
+                <p className="text-sm font-semibold text-base-content">
+                  Daily Generations Left: {dailyGenerationsLeft} / {DAILY_LIMIT}
+                </p>
+              </div>
+
               <button
                 onClick={handleSubmit}
-                disabled={!isFormValid || isLoading}
-                className="w-full flex items-center justify-center gap-3 text-lg font-semibold py-4 px-6 rounded-xl text-white transition-all duration-300 ease-in-out bg-gradient-to-r from-brand-primary to-brand-secondary hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none mt-2"
+                disabled={!isFormValid || isLoading || dailyGenerationsLeft <= 0}
+                className="w-full flex items-center justify-center gap-3 text-lg font-semibold py-4 px-6 rounded-xl text-white transition-all duration-300 ease-in-out bg-gradient-to-r from-brand-primary to-brand-secondary hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none"
               >
                 {isLoading ? (
                   <>
@@ -313,10 +356,10 @@ const App: React.FC = () => {
                   
                 )}
               </button>
-              <p className="text-xs text-base-content-secondary text-center mt-3 px-2">
-                By generating, your prompt, URL, and QR image will be sent to the Gemini API for processing.
+              <p className="text-xs text-base-content-secondary text-center -mt-3 px-2">
+                By generating, your prompt, URL, and images will be sent to the Gemini API for processing.
               </p>
-              {errorMessage && <p className="text-red-400 text-center font-medium animate-fade-in mt-4">{errorMessage}</p>}
+              {errorMessage && <p className="text-red-400 text-center font-medium animate-fade-in mt-2">{errorMessage}</p>}
             </div>
 
             {/* Output Column */}
@@ -325,7 +368,7 @@ const App: React.FC = () => {
                 appState={appState}
                 generatedImages={generatedImages}
                 validationResults={validationResults}
-                originalQRCodeFile={qrCodeFile}
+                referenceImageFile={referenceImageFile}
                 websiteUrl={websiteUrl}
                 onRegenerate={handleRegenerate}
               />

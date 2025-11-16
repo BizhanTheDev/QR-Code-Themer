@@ -1,22 +1,26 @@
 import React from 'react';
 import { Link2 } from 'lucide-react';
-import { QRSource } from '../types';
 
 interface URLInputProps {
   value: string;
   onChange: (value: string) => void;
-  source: QRSource;
 }
 
-const URLInput: React.FC<URLInputProps> = ({ value, onChange, source }) => {
+const URLInput: React.FC<URLInputProps> = ({ value, onChange }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
   };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    let url = e.target.value;
+    if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+      onChange(url);
+    }
+  };
   
-  const headingNumber = source === 'generate' ? 2 : 3;
-  const headingText = source === 'generate' 
-    ? "Enter URL to Theme" 
-    : "Enter Website for Theme";
+  const headingNumber = 1;
+  const headingText = "Enter URL to Theme";
 
   return (
     <div className="w-full">
@@ -30,15 +34,13 @@ const URLInput: React.FC<URLInputProps> = ({ value, onChange, source }) => {
           type="url"
           value={value}
           onChange={handleChange}
+          onBlur={handleBlur}
           placeholder="https://example.com"
           className="w-full pl-12 pr-4 py-3 text-base bg-base-200 border-2 border-base-300 rounded-xl focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
         />
       </div>
        <p className="text-xs text-base-content-secondary mt-1">
-        {source === 'generate' 
-          ? "This URL will be used to generate and theme the QR code. (Make sure to include 'https://' in your response)"
-          : "The QR code's theme will be based on this URL. (Make sure to include 'https://' in your response)"
-        }
+        This URL will be used to generate and theme the QR code.
       </p>
     </div>
   );

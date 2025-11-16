@@ -1,16 +1,13 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
-import { QRSource } from '../types';
 
 interface ImageCountSelectorProps {
   value: number;
   onChange: (value: number) => void;
-  source: QRSource;
 }
 
-const ImageCountSelector: React.FC<ImageCountSelectorProps> = ({ value, onChange, source }) => {
+const ImageCountSelector: React.FC<ImageCountSelectorProps> = ({ value, onChange }) => {
   const options = [1, 2, 3, 4];
-  const headingNumber = source === 'generate' ? 3 : 4;
+  const headingNumber = 3;
 
   return (
     <div className="w-full">

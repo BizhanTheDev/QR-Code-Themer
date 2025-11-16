@@ -7,7 +7,7 @@ interface GeneratedQRCodeProps {
   appState: AppState;
   generatedImages: string[] | null;
   validationResults: ValidationResult[];
-  originalQRCodeFile: File | null;
+  referenceImageFile: File | null;
   websiteUrl: string;
   onRegenerate: (index: number) => void;
 }
@@ -33,7 +33,7 @@ const GeneratedQRCode: React.FC<GeneratedQRCodeProps> = ({
     appState, 
     generatedImages, 
     validationResults,
-    originalQRCodeFile,
+    referenceImageFile,
     websiteUrl,
     onRegenerate 
 }) => {
@@ -66,7 +66,7 @@ const GeneratedQRCode: React.FC<GeneratedQRCodeProps> = ({
                     imageBase64={img}
                     index={index}
                     validationResult={validationResults[index]}
-                    originalQRCodeFile={originalQRCodeFile}
+                    referenceImageFile={referenceImageFile}
                     expectedUrl={websiteUrl}
                     onRegenerate={onRegenerate}
                   />

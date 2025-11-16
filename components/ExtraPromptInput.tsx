@@ -1,15 +1,12 @@
 import React from 'react';
-import { PencilRuler } from 'lucide-react';
-import { QRSource } from '../types';
 
 interface ExtraPromptInputProps {
   value: string;
   onChange: (value: string) => void;
-  source: QRSource;
 }
 
-const ExtraPromptInput: React.FC<ExtraPromptInputProps> = ({ value, onChange, source }) => {
-  const headingNumber = source === 'generate' ? 4 : 5;
+const ExtraPromptInput: React.FC<ExtraPromptInputProps> = ({ value, onChange }) => {
+  const headingNumber = 4;
   return (
     <div className="w-full">
       <h2 key={headingNumber} className="text-xl font-semibold mb-2 text-base-content flex items-center animate-fade-in-up">

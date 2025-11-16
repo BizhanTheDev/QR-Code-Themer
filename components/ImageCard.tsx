@@ -6,7 +6,7 @@ interface ImageCardProps {
   imageBase64: string;
   index: number;
   validationResult: ValidationResult | undefined;
-  originalQRCodeFile: File | null;
+  referenceImageFile: File | null;
   expectedUrl: string;
   onRegenerate: (index: number) => void;
 }
@@ -16,23 +16,23 @@ const ImageCard: React.FC<ImageCardProps> = ({
   imageBase64, 
   index,
   validationResult,
-  originalQRCodeFile,
+  referenceImageFile,
   expectedUrl,
   onRegenerate
 }) => {
   
-  const originalFilename = useMemo(() => {
-    if (!originalQRCodeFile) return `themed-qr-code-${index + 1}.png`;
-    const nameParts = originalQRCodeFile.name.split('.');
+  const themedFilename = useMemo(() => {
+    if (!referenceImageFile) return `themed-qr-code-${index + 1}.png`;
+    const nameParts = referenceImageFile.name.split('.');
     nameParts.pop(); // remove extension
     return `${nameParts.join('.')}-themed-${index + 1}.png`;
-  }, [originalQRCodeFile, index]);
+  }, [referenceImageFile, index]);
 
   const handleDownload = () => {
     if (!imageBase64) return;
     const link = document.createElement('a');
     link.href = `data:image/png;base64,${imageBase64}`;
-    link.download = originalFilename;
+    link.download = themedFilename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

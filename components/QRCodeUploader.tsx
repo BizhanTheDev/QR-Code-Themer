@@ -52,16 +52,16 @@ const QRCodeUploader: React.FC<QRCodeUploaderProps> = ({ onFileChange }) => {
     <div className="w-full">
       <h2 className="text-xl font-semibold mb-2 text-base-content flex items-center">
         <span className="bg-brand-primary text-white rounded-full w-6 h-6 flex-shrink-0 inline-flex items-center justify-center text-sm font-bold mr-2">2</span>
-        Upload QR Code
+        Add a Reference Image
       </h2>
       <label
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        className={`relative flex flex-col items-center justify-center w-full h-64 border-2 border-base-300 border-dashed rounded-xl cursor-pointer bg-base-200 hover:bg-base-300/60 transition-colors duration-200 ease-in-out ${preview ? 'p-2' : 'p-5'}`}
+        className={`relative flex flex-col items-center justify-center w-full h-32 border-2 border-base-300 border-dashed rounded-xl cursor-pointer bg-base-200 hover:bg-base-300/60 transition-colors duration-200 ease-in-out ${preview ? 'p-2' : 'p-5'}`}
       >
         {preview ? (
           <>
-            <img src={preview} alt="QR Code Preview" className="max-h-full max-w-full object-contain rounded-md" />
+            <img src={preview} alt="Reference Preview" className="max-h-full max-w-full object-contain rounded-md" />
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -76,8 +76,8 @@ const QRCodeUploader: React.FC<QRCodeUploaderProps> = ({ onFileChange }) => {
           </>
         ) : (
           <div className="text-center">
-            <UploadCloud className="mx-auto h-12 w-12 text-base-content-secondary" />
-            <p className="mt-2 text-lg font-semibold text-base-content">
+            <UploadCloud className="mx-auto h-8 w-8 text-base-content-secondary" />
+            <p className="mt-2 font-semibold text-base-content">
               Click to upload or drag & drop
             </p>
             <p className="text-sm text-base-content-secondary">PNG, JPG, WEBP</p>
@@ -91,6 +91,7 @@ const QRCodeUploader: React.FC<QRCodeUploaderProps> = ({ onFileChange }) => {
           onChange={(e) => handleFileSelect(e.target.files ? e.target.files[0] : null)}
         />
       </label>
+       <p className="text-xs text-base-content-secondary mt-1">Optional: This image will inspire the style of your QR code.</p>
     </div>
   );
 };
