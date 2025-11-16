@@ -11,9 +11,21 @@ const AdBanner: React.FC = () => {
   const adClient = process.env.VITE_ADSENSE_CLIENT_ID;
   const adSlot = process.env.VITE_ADSENSE_SLOT_ID;
 
+  // This effect injects the AdSense script into the document head if it doesn't exist.
   useEffect(() => {
-    // This effect will run after the component mounts
-    // and is the recommended way to trigger an ad request.
+    if (!adClient || document.getElementById('adsense-script')) {
+      return;
+    }
+    const script = document.createElement("script");
+    script.id = "adsense-script";
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adClient}`;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    document.head.appendChild(script);
+  }, [adClient]);
+
+  // This effect runs after the component mounts to trigger an ad request.
+  useEffect(() => {
     try {
       if (window.adsbygoogle && adClient && adSlot) {
         window.adsbygoogle.push({});
@@ -23,9 +35,7 @@ const AdBanner: React.FC = () => {
     }
   }, [adClient, adSlot]);
 
-  // If the ad client or slot ID is not configured, don't render anything.
-  // This prevents broken ad blocks from showing up in development and provides
-  // a helpful message.
+  // If the ad client or slot ID is not configured, render a placeholder.
   if (!adClient || !adSlot) {
     return (
         <div className="w-full text-center bg-base-300/50 p-4 rounded-lg mt-6 animate-fade-in">
