@@ -52,7 +52,7 @@ const QRCodeUploader: React.FC<QRCodeUploaderProps> = ({ onFileChange }) => {
     <div className="w-full">
       <h2 className="text-xl font-semibold mb-2 text-base-content flex items-center">
         <span className="bg-brand-primary text-white rounded-full w-6 h-6 flex-shrink-0 inline-flex items-center justify-center text-sm font-bold mr-2">2</span>
-        Add a Reference Image
+        Add a Reference Image (Optional)
       </h2>
       <label
         onDragOver={handleDragOver}
@@ -91,7 +91,7 @@ const QRCodeUploader: React.FC<QRCodeUploaderProps> = ({ onFileChange }) => {
           onChange={(e) => handleFileSelect(e.target.files ? e.target.files[0] : null)}
         />
       </label>
-       <p className="text-xs text-base-content-secondary mt-1">Optional: This image will inspire the style of your QR code.</p>
+       <p className="text-xs text-base-content-secondary mt-1">This image will inspire the style of your QR code.</p>
     </div>
   );
 };
