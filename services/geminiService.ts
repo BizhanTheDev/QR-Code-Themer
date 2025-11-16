@@ -1,14 +1,20 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import { GenerationConfig, MimeType } from '../types';
 
-// This check ensures that the API key is available. 
-// In a real-world application, this key should be kept secret and managed securely.
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable not set");
-}
+/**
+ * Initializes and returns a GoogleGenAI client.
+ * Throws an error if the API key is not configured in the environment variables.
+ * This ensures the application can load but will show a clear error on first API use.
+ * @returns {GoogleGenAI} An instance of the GoogleGenAI client.
+ */
+const getAiClient = (): GoogleGenAI => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API_KEY environment variable not set. Please ensure it's configured in your Vercel deployment settings.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
-// Initialize the Google Gemini AI client with the API key.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
  * Analyzes a website's visual theme using the Gemini model.
@@ -17,6 +23,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
  * @returns {Promise<string>} A promise that resolves to a text description of the website's theme.
  */
 export async function getWebsiteTheme(url: string): Promise<string> {
+  const ai = getAiClient();
   // This prompt instructs the AI to act as a designer and describe the website's branding.
   // It asks for specific details like color palette, style, and overall feeling.
   const prompt = `
@@ -64,6 +71,7 @@ export async function generateThemedQRCode(
   generationConfig: GenerationConfig,
   extraPrompt: string
 ): Promise<string[]> {
+  const ai = getAiClient();
   // This is the core instruction for the image generation model.
   // It's a detailed "prompt" that tells the AI exactly what to do.
   const basePrompt = `
