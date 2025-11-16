@@ -1,0 +1,5 @@
+{
+  "name": "QR Code Themer",
+  "description": "A web application that themes a QR code based on the visual style of a website. Users upload a QR code and provide a website URL, and the app generates a new, stylized QR code that matches the website's theme while remaining scannable.",
+  "requestFramePermissions": []
+}
