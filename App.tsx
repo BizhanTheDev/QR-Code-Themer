@@ -329,7 +329,7 @@ const App: React.FC = () => {
                 websiteUrl={websiteUrl}
                 onRegenerate={handleRegenerate}
               />
-              <AdBanner />
+              {/* <AdBanner /> */}
             </div>
           </div>
         </div>
