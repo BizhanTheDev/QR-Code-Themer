@@ -13,18 +13,12 @@ export const defaultGenerationConfig: GenerationConfig = {
 };
 
 /**
- * Default creative prompt added to every generation.
- * Edit this string to permanently change the default creative instructions.
- */
-export const defaultExtraPrompt: string = 'Really preserve the QR code but other elements may be added around it/add a subtle background. **IMPORTANT** Have enough contrast to make the QR Readable to phones';
-export const defaultExtraPrompt2: string = '';
-/**
  * Default configuration for the animated gradient background.
  */
 export const defaultGradientConfig: GradientConfig = {
-  fromColor: '#6366f1',
-  viaColor: '#1f2937',
-  toColor: '#8b5cf6',
+  fromColor: '#08f7fe', // Neon Cyan
+  viaColor: '#e025ce', // Neon Magenta
+  toColor: '#6366f1', // Indigo
   isAnimated: true,
 };
 

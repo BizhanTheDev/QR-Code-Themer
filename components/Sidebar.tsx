@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X, RefreshCw, SlidersHorizontal, ClipboardList, Info, ExternalLink, Palette, KeyRound } from 'lucide-react';
-import { GenerationConfig, BackgroundStyle, GradientConfig, PatternConfig } from '../types';
-import { defaultGenerationConfig, defaultExtraPrompt } from '../config/defaults';
+import { X, RefreshCw, SlidersHorizontal, ClipboardList, Info, ExternalLink, Palette, KeyRound, History, Trash2, Download } from 'lucide-react';
+import { GenerationConfig, BackgroundStyle, GradientConfig, PatternConfig, HistoryItem } from '../types';
+import { defaultGenerationConfig } from '../config/defaults';
 import BackgroundSelector from './BackgroundSelector';
+import GenerationControls from './GenerationControls';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -20,6 +21,15 @@ interface SidebarProps {
   setCustomImageUrl: (url: string | null) => void;
   customApiKey: string;
   setCustomApiKey: (key: string) => void;
+  readability: number;
+  setReadability: (value: number) => void;
+  styleStrength: number;
+  setStyleStrength: (value: number) => void;
+  creativity: number;
+  setCreativity: (value: number) => void;
+  history: HistoryItem[];
+  onClearHistory: () => void;
+  onImageClick: (imageBase64: string) => void;
 }
 
 const DefaultValue = ({ label, value }: { label: string, value: string | number }) => (
@@ -38,13 +48,63 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     onResetToDefaults,
     customApiKey,
     setCustomApiKey,
+    history,
+    onClearHistory,
+    onImageClick
   } = props;
 
-  const [activeTab, setActiveTab] = useState<'advanced' | 'api' | 'theme' | 'defaults'>('advanced');
+  const [activeTab, setActiveTab] = useState<'finetune' | 'history' | 'advanced' | 'api' | 'theme' | 'defaults'>('finetune');
   
   const handleRandomizeSeed = () => {
     setConfig({ ...config, seed: Math.floor(Math.random() * 1000000) });
   };
+  
+  const handleDownloadAll = (item: HistoryItem) => {
+    item.images.forEach((imageBase64, index) => {
+      // Sanitize the URL
+      const sanitizedUrl = item.url
+        .replace(/^https?:\/\/(www\.)?/, '')
+        .replace(/\/$/, '')
+        .replace(/[^a-z0-9\.]+/gi, '-')
+        .substring(0, 50);
+
+      // Sanitize the prompt
+      const sanitizedPrompt = item.extraPrompt
+        .replace(/[^a-z0-9\s]+/gi, '')
+        .trim()
+        .split(/\s+/)
+        .slice(0, 5)
+        .join('-')
+        .toLowerCase();
+      
+      const filename = sanitizedPrompt
+        ? `qr-code-${sanitizedUrl}-${sanitizedPrompt}-${index + 1}.png`
+        : `qr-code-${sanitizedUrl}-${index + 1}.png`;
+
+      const link = document.createElement('a');
+      link.href = `data:image/png;base64,${imageBase64}`;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  };
+
+  const TabButton: React.FC<{
+      target: typeof activeTab, 
+      icon: React.ElementType, 
+      label: string, 
+      current: typeof activeTab, 
+      setter: (tab: typeof activeTab) => void
+    }> = ({ target, icon: Icon, label, current, setter }) => (
+    <button
+        onClick={() => setter(target)}
+        className={`flex items-center whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm transition-all duration-200 ease-out-quad hover:bg-base-300/40 rounded-t-md transform hover:-translate-y-px ${current === target ? 'border-brand-primary text-brand-primary' : 'border-transparent text-base-content-secondary hover:text-base-content hover:border-base-content-secondary'}`}
+    >
+        <Icon className="mr-2 h-5 w-5" />
+        <span>{label}</span>
+    </button>
+  );
 
   return (
     <>
@@ -57,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="sidebar-title"
-        className={`fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-full max-w-2xl bg-base-100 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex justify-between items-center p-4 border-b border-base-300">
           <h2 id="sidebar-title" className="text-2xl font-bold">Settings</h2>
@@ -68,39 +128,109 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
         
         {/* Tabs */}
         <div className="border-b border-base-300 px-2 sm:px-4">
-            <nav className="-mb-px flex space-x-2" aria-label="Tabs">
-                <button
-                    onClick={() => setActiveTab('advanced')}
-                    className={`flex items-center whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'advanced' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-base-content-secondary hover:text-base-content hover:border-base-content-secondary'}`}
-                >
-                    <SlidersHorizontal className="mr-2 h-5 w-5" />
-                    <span>Advanced</span>
-                </button>
-                 <button
-                    onClick={() => setActiveTab('api')}
-                     className={`flex items-center whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'api' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-base-content-secondary hover:text-base-content hover:border-base-content-secondary'}`}
-                >
-                    <KeyRound className="mr-2 h-5 w-5" />
-                    <span>API</span>
-                </button>
-                 <button
-                    onClick={() => setActiveTab('theme')}
-                     className={`flex items-center whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'theme' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-base-content-secondary hover:text-base-content hover:border-base-content-secondary'}`}
-                >
-                    <Palette className="mr-2 h-5 w-5" />
-                    <span>Theme</span>
-                </button>
-                <button
-                    onClick={() => setActiveTab('defaults')}
-                     className={`flex items-center whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'defaults' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-base-content-secondary hover:text-base-content hover:border-base-content-secondary'}`}
-                >
-                    <ClipboardList className="mr-2 h-5 w-5" />
-                    <span>Defaults</span>
-                </button>
+            <nav className="-mb-px flex space-x-2 overflow-x-auto" aria-label="Tabs">
+                <TabButton target="finetune" icon={SlidersHorizontal} label="Fine-tune" current={activeTab} setter={setActiveTab} />
+                <TabButton target="history" icon={History} label="History" current={activeTab} setter={setActiveTab} />
+                <TabButton target="advanced" icon={SlidersHorizontal} label="Advanced" current={activeTab} setter={setActiveTab} />
+                <TabButton target="api" icon={KeyRound} label="API" current={activeTab} setter={setActiveTab} />
+                <TabButton target="theme" icon={Palette} label="Theme" current={activeTab} setter={setActiveTab} />
+                <TabButton target="defaults" icon={ClipboardList} label="Defaults" current={activeTab} setter={setActiveTab} />
             </nav>
         </div>
 
         <div className="overflow-y-auto h-[calc(100%-121px)]">
+          {activeTab === 'finetune' && (
+            <div className="p-6">
+                <h3 className="text-lg font-semibold text-base-content mb-3">Creative Controls</h3>
+                <GenerationControls 
+                  readability={props.readability}
+                  setReadability={props.setReadability}
+                  styleStrength={props.styleStrength}
+                  setStyleStrength={props.setStyleStrength}
+                  creativity={props.creativity}
+                  setCreativity={props.setCreativity}
+                />
+            </div>
+          )}
+          {activeTab === 'history' && (
+            <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-base-content">Generation History</h3>
+                    {history.length > 0 && (
+                        <button 
+                            onClick={onClearHistory}
+                            className="flex items-center gap-2 text-sm font-medium text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-1 rounded-lg transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Clear History
+                        </button>
+                    )}
+                </div>
+                 <p className="text-xs text-base-content-secondary mb-4">
+                    Your past generations are saved in your browser's local storage.
+                </p>
+                {history.length === 0 ? (
+                    <div className="text-center py-10">
+                        <History className="mx-auto h-12 w-12 text-base-300" />
+                        <p className="mt-2 text-base-content-secondary">No past generations found.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {history.map(item => (
+                            <div key={item.id} className="bg-base-200 p-3 rounded-lg border border-base-300">
+                                <div className="flex items-start gap-4">
+                                    <div className="flex-grow overflow-hidden">
+                                        <p className="text-sm font-semibold text-base-content truncate" title={item.url}>{item.url}</p>
+                                        <p className="text-xs text-base-content-secondary truncate italic">"{item.extraPrompt || 'No creative details'}"</p>
+                                        <p className="text-xs text-base-content-secondary mt-1">{new Date(item.timestamp).toLocaleString()}</p>
+                                    </div>
+                                    <button 
+                                      onClick={() => handleDownloadAll(item)}
+                                      className="flex-shrink-0 flex items-center gap-2 text-sm font-medium text-brand-primary hover:text-white bg-brand-primary/10 hover:bg-brand-primary/80 px-3 py-1.5 rounded-lg transition-colors"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        All
+                                    </button>
+                                </div>
+                                <div className="mt-3 grid grid-cols-4 gap-2">
+                                  {item.images.map((img, index) => {
+                                    const handleDownloadSingle = () => {
+                                      const sanitizedUrl = item.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '').replace(/[^a-z0-9\.]+/gi, '-').substring(0, 50);
+                                      const sanitizedPrompt = item.extraPrompt.replace(/[^a-z0-9\s]+/gi, '').trim().split(/\s+/).slice(0, 5).join('-').toLowerCase();
+                                      const filename = sanitizedPrompt ? `qr-code-${sanitizedUrl}-${sanitizedPrompt}-${index + 1}.png` : `qr-code-${sanitizedUrl}-${index + 1}.png`;
+                                      const link = document.createElement('a');
+                                      link.href = `data:image/png;base64,${img}`;
+                                      link.download = filename;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                    };
+                                    return (
+                                      <div key={index} className="relative group">
+                                        <img
+                                          src={`data:image/png;base64,${img}`}
+                                          alt={`History thumbnail ${index + 1}`}
+                                          className="w-full aspect-square rounded-md object-contain bg-white cursor-pointer transition-transform duration-200 group-hover:scale-105"
+                                          onClick={() => onImageClick(img)}
+                                        />
+                                        <button
+                                          onClick={handleDownloadSingle}
+                                          className="absolute bottom-1 right-1 p-1.5 bg-base-100/70 backdrop-blur-sm rounded-full text-base-content-secondary hover:text-white hover:bg-brand-primary transition-all duration-200 opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100"
+                                          aria-label="Download this image"
+                                          title="Download this image"
+                                        >
+                                          <Download className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+          )}
           {activeTab === 'advanced' && (
             <div className="p-6 space-y-6">
               <div>
@@ -114,26 +244,11 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     placeholder="Random"
                     className="w-full px-3 py-2 text-base bg-base-200 border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
                   />
-                  <button onClick={handleRandomizeSeed} title="Randomize Seed" className="p-2 bg-base-300 rounded-lg hover:bg-brand-primary hover:text-white transition-colors">
+                  <button onClick={handleRandomizeSeed} title="Randomize Seed" className="p-2 bg-base-300 rounded-lg hover:bg-brand-primary hover:text-white transition-all duration-200 transform hover:scale-110 hover:rotate-12">
                     <RefreshCw className="w-5 h-5" />
                   </button>
                 </div>
                 <p className="text-xs text-base-content-secondary mt-1">Controls randomness. Same seed + prompt = same image.</p>
-              </div>
-              
-              <div>
-                <label htmlFor="temperature" className="block text-sm font-medium text-base-content-secondary mb-1">Creativity (Temperature): {config.temperature}</label>
-                <input
-                  type="range"
-                  id="temperature"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={config.temperature}
-                  onChange={(e) => setConfig({ ...config, temperature: parseFloat(e.target.value) })}
-                  className="w-full h-2 bg-base-300 rounded-lg appearance-none cursor-pointer accent-brand-primary"
-                />
-                 <p className="text-xs text-base-content-secondary mt-1">Lower values are more predictable, higher are more creative.</p>
               </div>
 
               <div>
@@ -188,7 +303,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                   {customApiKey && (
                     <button 
                       onClick={() => setCustomApiKey('')} 
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-base-content-secondary hover:text-white"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-base-content-secondary hover:text-white hover:bg-red-500/50 rounded-full transition-all"
                       title="Clear API Key"
                     >
                       <X className="w-5 h-5" />
@@ -210,7 +325,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 <div className="bg-base-200 p-3 rounded-lg border border-base-300 mb-4">
                   <h4 className="font-semibold text-sm text-base-content">Daily Generation Limit</h4>
                   <p className="text-xs text-base-content-secondary mt-1">
-                    To ensure fair use with the site's API key, there is a limit of 10 generations per user, per day. This is tracked using a cookie in your browser and resets automatically.
+                    To ensure fair use, the site's API key has a daily limit based on the number of images generated. This is tracked in your browser and resets automatically.
                   </p>
                 </div>
                 <p className="text-sm text-base-content-secondary">
@@ -220,7 +335,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                   href="https://ai.google.dev/gemini-api/docs/models/gemini#rate-limits"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full mt-4 flex items-center justify-center gap-2 font-semibold py-2 px-4 rounded-lg text-base-content transition-all duration-200 ease-in-out bg-base-300 hover:bg-brand-secondary hover:text-white"
+                  className="w-full mt-4 flex items-center justify-center gap-2 font-semibold py-2 px-4 rounded-lg text-base-content transition-all duration-200 ease-in-out bg-base-300 hover:bg-brand-secondary hover:text-white transform hover:scale-105"
                 >
                   <ExternalLink className="h-4 w-4" />
                   View Gemini API Limits
@@ -245,24 +360,13 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         </div>
                     </div>
 
-                    <div className="mt-6">
-                        <h3 className="text-lg font-semibold text-base-content">Default Creative Prompt</h3>
-                         <p className="text-sm text-base-content-secondary">
-                            This text is automatically added to the prompt for every generation. Edit the default value in: <br />
-                            <code className="text-xs bg-base-200 p-1 rounded-md inline-block mt-1">config/defaults.ts</code>
-                        </p>
-                        <div className="mt-2 rounded-lg bg-base-200 p-4 border border-base-300">
-                            <p className="text-sm font-mono text-base-content-secondary">{defaultExtraPrompt}</p>
-                        </div>
-                    </div>
-
                     <button 
                         onClick={() => {
                           onResetToDefaults();
                           // Optional: switch back to the advanced tab to see the changes
                           setActiveTab('advanced');
                         }}
-                        className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-lg text-base-content transition-all duration-200 ease-in-out bg-base-300 hover:bg-brand-primary hover:text-white mt-6"
+                        className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-lg text-base-content transition-all duration-200 ease-in-out bg-base-300 hover:bg-brand-primary hover:text-white transform hover:scale-105"
                     >
                         <RefreshCw className="h-4 w-4" />
                         Reset Current Settings to Defaults

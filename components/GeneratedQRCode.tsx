@@ -1,7 +1,8 @@
 import React from 'react';
 import { AppState, ValidationResult } from '../types';
-import { Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Image as ImageIcon } from 'lucide-react';
 import ImageCard from './ImageCard';
+import MosaicLoader from './MosaicLoader';
 
 interface GeneratedQRCodeProps {
   appState: AppState;
@@ -9,16 +10,13 @@ interface GeneratedQRCodeProps {
   validationResults: ValidationResult[];
   referenceImageFile: File | null;
   websiteUrl: string;
+  extraPrompt: string;
   onRegenerate: (index: number) => void;
+  isProcessing: boolean;
+  progress: number;
+  isInitialGeneration: boolean;
+  onImageClick: (imageBase64: string) => void;
 }
-
-const LoadingPlaceholder: React.FC<{ text: string }> = ({ text }) => (
-    <div className="w-full h-full flex flex-col items-center justify-center text-center animate-fade-in p-4">
-        <Loader2 className="h-12 w-12 text-brand-primary animate-spin" />
-        <p className="mt-4 text-lg font-semibold text-base-content">{text}</p>
-        <p className="text-base-content-secondary">This may take a moment...</p>
-    </div>
-);
 
 const IdlePlaceholder: React.FC = () => (
     <div className="w-full h-full flex flex-col items-center justify-center text-center p-4">
@@ -35,18 +33,20 @@ const GeneratedQRCode: React.FC<GeneratedQRCodeProps> = ({
     validationResults,
     referenceImageFile,
     websiteUrl,
-    onRegenerate 
+    extraPrompt,
+    onRegenerate,
+    isProcessing,
+    progress,
+    isInitialGeneration,
+    onImageClick
 }) => {
   const renderContent = () => {
     switch (appState) {
       case AppState.GENERATING_BASE_QR:
-        return <LoadingPlaceholder text="Generating Base QR Code..." />;
       case AppState.LOADING_THEME:
-        return <LoadingPlaceholder text="Analyzing Website Theme..." />;
       case AppState.LOADING_QR_CODE:
-        return <LoadingPlaceholder text="Painting Your QR Code(s)..." />;
       case AppState.VALIDATING:
-          return <LoadingPlaceholder text="Validating QR Code(s)..." />;
+        return <MosaicLoader progress={progress} appState={appState} />;
       case AppState.ERROR:
         return (
           <div className="w-full h-full flex flex-col items-center justify-center text-center p-4 animate-fade-in">
@@ -58,18 +58,26 @@ const GeneratedQRCode: React.FC<GeneratedQRCodeProps> = ({
       case AppState.SUCCESS:
         if (generatedImages && generatedImages.length > 0) {
           return (
-             <div className="w-full h-full flex flex-col items-center animate-fade-in">
+             <div className="w-full h-full flex flex-col items-center">
               <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {generatedImages.map((img, index) => (
-                  <ImageCard
-                    key={`${index}-${img.slice(0,20)}`} // Add part of img to key to force re-render on change
-                    imageBase64={img}
-                    index={index}
-                    validationResult={validationResults[index]}
-                    referenceImageFile={referenceImageFile}
-                    expectedUrl={websiteUrl}
-                    onRegenerate={onRegenerate}
-                  />
+                  <div
+                    key={`${index}-${img.slice(0,20)}`}
+                    className={`opacity-0 ${isInitialGeneration ? (index % 2 === 0 ? 'animate-break-free-left' : 'animate-break-free-right') : 'animate-fade-in'}`}
+                    style={{ animationDelay: isInitialGeneration ? `${index * 150}ms` : '0ms' }}
+                  >
+                    <ImageCard
+                      imageBase64={img}
+                      index={index}
+                      validationResult={validationResults[index]}
+                      referenceImageFile={referenceImageFile}
+                      expectedUrl={websiteUrl}
+                      extraPrompt={extraPrompt}
+                      onRegenerate={onRegenerate}
+                      isProcessing={isProcessing}
+                      onImageClick={onImageClick}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
@@ -83,7 +91,7 @@ const GeneratedQRCode: React.FC<GeneratedQRCodeProps> = ({
   };
 
   return (
-    <div className="w-full h-full bg-base-200 rounded-xl flex items-center justify-center p-2 lg:p-4 min-h-[400px]">
+    <div className="w-full h-full bg-base-200 rounded-xl flex items-center justify-center p-2 lg:p-4 min-h-[400px] overflow-hidden">
       {renderContent()}
     </div>
   );

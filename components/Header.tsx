@@ -20,10 +20,10 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick }) => {
           </div>
           <button 
             onClick={onSettingsClick}
-            className="flex items-center gap-2 py-2 px-4 rounded-lg text-base-content-secondary hover:bg-base-300 hover:text-base-content transition-colors"
+            className="group flex items-center gap-2 py-2 px-4 rounded-lg text-base-content-secondary hover:bg-base-300 hover:text-base-content transition-all duration-200 ease-out-quad transform hover:scale-105 active:scale-100"
             aria-label="Open advanced settings"
           >
-            <Settings className="h-5 w-5" />
+            <Settings className="h-5 w-5 transition-transform duration-500 ease-out-quad group-hover:rotate-180" />
             <span className="hidden sm:inline font-medium">Advanced</span>
           </button>
         </div>

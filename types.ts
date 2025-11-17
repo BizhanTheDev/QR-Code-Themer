@@ -39,3 +39,11 @@ export interface PatternConfig {
   color: string;
   opacity: number;
 }
+
+export interface HistoryItem {
+  id: string; // A unique ID, e.g., a timestamp
+  images: string[];
+  url: string;
+  extraPrompt: string;
+  timestamp: number;
+}

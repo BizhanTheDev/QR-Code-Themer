@@ -5,7 +5,7 @@
      crossorigin="anonymous"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google-site-verification" content="HZBRMvq_ZifbFcPo4g8QLon3JJpiZ5RFm_dzRz6FIkY" />
+    <meta name="google-site-verification" content="GGIh_jKd3Avsk5RuKnem_Q_dbQLd6AXFHB4ptBpcCCE" />
     <title>QR Code Themer | AI-Powered QR Code Styling</title>
 
     <!-- SEO Meta Tags -->
@@ -40,11 +40,22 @@
               'base-content': '#f9fafb', // Off-white for primary text
               'base-content-secondary': '#9ca3af', // Gray for secondary text
             },
+            transitionTimingFunction: {
+              'out-quad': 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            },
             animation: {
               'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'fade-in': 'fadeIn 0.5s ease-in-out',
-              'fade-in-up': 'fadeInUp 0.4s ease-in-out',
+              'fade-in': 'fadeIn 0.5s ease-out-quad',
+              'fade-in-slow': 'fadeIn 1s ease-out-quad',
+              'fade-in-up': 'fadeInUp 0.4s ease-out-quad',
               'gradient-shift': 'gradientShift 10s ease infinite',
+              'mosaic-pulse': 'mosaic-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'break-free-left': 'break-free-left 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+              'break-free-right': 'break-free-right 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+              'toast-in': 'toast-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+              'toast-out': 'toast-out 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+              'lightbox-in': 'lightbox-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+              'lightbox-out': 'lightbox-out 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
             },
             keyframes: {
               fadeIn: {
@@ -60,6 +71,39 @@
                 '25%': { 'background-position': '100% 0%' },
                 '50%': { 'background-position': '100% 100%' },
                 '75%': { 'background-position': '0% 100%' },
+              },
+              'mosaic-pulse': {
+                '0%, 100%': { opacity: 0.1, transform: 'scale(0.9)' },
+                '50%': { opacity: 0.4, transform: 'scale(1)' },
+              },
+              'break-free-left': {
+                '0%': { opacity: 0, transform: 'translateX(-105%) scale(0.7)' },
+                '60%': { opacity: 1, transform: 'translateX(5%) scale(1.05)' },
+                '80%': { transform: 'translateX(-2%) scale(0.98)' },
+                '100%': { opacity: 1, transform: 'translateX(0%) scale(1)' },
+              },
+              'break-free-right': {
+                '0%': { opacity: 0, transform: 'translateX(105%) scale(0.7)' },
+                '60%': { opacity: 1, transform: 'translateX(-5%) scale(1.05)' },
+                '80%': { transform: 'translateX(2%) scale(0.98)' },
+                '100%': { opacity: 1, transform: 'translateX(0%) scale(1)' },
+              },
+              'toast-in': {
+                '0%': { transform: 'translateY(-120%)', opacity: 0 },
+                '100%': { transform: 'translateY(0)', opacity: 1 },
+              },
+              'toast-out': {
+                '0%': { transform: 'translateY(0)', opacity: 1 },
+                '100%': { transform: 'translateY(-120%)', opacity: 0 },
+              },
+              'lightbox-in': {
+                '0%': { opacity: 0, transform: 'scale(0.8)' },
+                '70%': { opacity: 1, transform: 'scale(1.03)' },
+                '100%': { opacity: 1, transform: 'scale(1)' },
+              },
+              'lightbox-out': {
+                '0%': { opacity: 1, transform: 'scale(1)' },
+                '100%': { opacity: 0, transform: 'scale(0.8)' },
               },
             },
              backgroundSize: {

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { generateThemedQRCode, getWebsiteTheme } from './services/geminiService';
 import { generateQRCodeFromURL, validateQRCode } from './utils/qrUtils';
-import { AppState, MimeType, GenerationConfig, ValidationResult, BackgroundStyle, GradientConfig, PatternConfig } from './types';
+import { AppState, MimeType, GenerationConfig, ValidationResult, BackgroundStyle, GradientConfig, PatternConfig, HistoryItem } from './types';
 import Header from './components/Header';
 import URLInput from './components/URLInput';
 import QRCodeUploader from './components/QRCodeUploader';
@@ -10,42 +10,70 @@ import ImageCountSelector from './components/ImageCountSelector';
 import ExtraPromptInput from './components/ExtraPromptInput';
 import Sidebar from './components/Sidebar';
 import AdBanner from './components/AdBanner';
+import Toast from './components/Toast';
+import Lightbox from './components/Lightbox';
 import { Loader2, Wand2 } from 'lucide-react';
-import { defaultGenerationConfig, defaultExtraPrompt, defaultExtraPrompt2, defaultGradientConfig, defaultPatternConfig } from './config/defaults';
+import { defaultGenerationConfig, defaultGradientConfig, defaultPatternConfig } from './config/defaults';
 import { hexToRgb } from './utils/colorUtils';
 import { setCookie, getCookie } from './utils/cookieUtils';
+import { useTaskQueue } from './hooks/useTaskQueue';
+import { getHistory, saveGenerationToHistory, clearHistory } from './utils/historyUtils';
 
-const DAILY_LIMIT = 10;
+const DAILY_LIMIT = 20;
 const COOKIE_NAME = 'qrThemerDailyLimit';
+
+type ToastMessage = { id: number; message: string; type: 'warning' | 'info' } | null;
 
 const App: React.FC = () => {
   const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null);
   const [websiteUrl, setWebsiteUrl] = useState<string>('');
   const [numberOfImages, setNumberOfImages] = useState<number>(1);
-  const [extraPrompt, setExtraPrompt] = useState<string>(defaultExtraPrompt2);
+  const [extraPrompt, setExtraPrompt] = useState<string>('');
   const [baseQrCode, setBaseQrCode] = useState<string | null>(null);
   
   const [generatedImages, setGeneratedImages] = useState<string[] | null>(null);
   const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
 
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
+  const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string>('');
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [generationConfig, setGenerationConfig] = useState<GenerationConfig>(defaultGenerationConfig);
   const [customApiKey, setCustomApiKey] = useState<string>('');
   
+  const { tasks, addTask, isProcessing } = useTaskQueue();
+  
+  // New creative controls state
+  const [readability, setReadability] = useState(0.5);
+  const [styleStrength, setStyleStrength] = useState(0.5);
+  const [creativity, setCreativity] = useState(defaultGenerationConfig.temperature);
+
   // Daily limit state
   const [dailyGenerationsLeft, setDailyGenerationsLeft] = useState<number>(DAILY_LIMIT);
   
   // Theme state
-  const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>('default');
+  const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>('gradient');
   const [gradientConfig, setGradientConfig] = useState<GradientConfig>(defaultGradientConfig);
   const [patternConfig, setPatternConfig] = useState<PatternConfig>(defaultPatternConfig);
   const [customImageUrl, setCustomImageUrl] = useState<string | null>(null);
 
-  // Effect to read the cookie on initial load
+  // History state
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  
+  // Toast notification state
+  const [toast, setToast] = useState<ToastMessage>(null);
+
+  // Lightbox state
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  
+  // State to track if it's the first generation vs a regeneration for animation purposes
+  const [isInitialGeneration, setIsInitialGeneration] = useState(true);
+
+  // Effect to load history and daily limit cookie on initial load
   useEffect(() => {
+    setHistory(getHistory());
+    
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const cookieValue = getCookie(COOKIE_NAME);
     if (cookieValue) {
@@ -54,17 +82,14 @@ const App: React.FC = () => {
             if (lastReset === today) {
                 setDailyGenerationsLeft(count);
             } else {
-                // It's a new day, reset the cookie
                 setCookie(COOKIE_NAME, JSON.stringify({ count: DAILY_LIMIT, lastReset: today }), 1);
                 setDailyGenerationsLeft(DAILY_LIMIT);
             }
         } catch (e) {
-            // Invalid cookie, reset it
              setCookie(COOKIE_NAME, JSON.stringify({ count: DAILY_LIMIT, lastReset: today }), 1);
              setDailyGenerationsLeft(DAILY_LIMIT);
         }
     } else {
-        // No cookie, user's first time or it expired
         setDailyGenerationsLeft(DAILY_LIMIT);
     }
   }, []);
@@ -73,16 +98,15 @@ const App: React.FC = () => {
   useEffect(() => {
     const bgElement = document.getElementById('body-bg');
     if (bgElement) {
-      // Reset all properties
       bgElement.className = 'fixed inset-0 -z-10 transition-all duration-500';
       bgElement.style.backgroundImage = '';
       bgElement.style.backgroundColor = '';
 
       switch (backgroundStyle) {
         case 'gradient':
-          const fromRgb = hexToRgb(gradientConfig.fromColor, 0.2);
+          const fromRgb = hexToRgb(gradientConfig.fromColor, 0.6);
           const viaRgb = hexToRgb(gradientConfig.viaColor, 1);
-          const toRgb = hexToRgb(gradientConfig.toColor, 0.2);
+          const toRgb = hexToRgb(gradientConfig.toColor, 0.6);
           bgElement.style.backgroundImage = `linear-gradient(240deg, ${fromRgb}, ${viaRgb}, ${toRgb})`;
           if (gradientConfig.isAnimated) {
             bgElement.classList.add('animate-gradient-shift', 'bg-300%');
@@ -114,16 +138,17 @@ const App: React.FC = () => {
     setAppState(AppState.IDLE);
     setErrorMessage('');
     setBaseQrCode(null);
+    setProgress(0);
   }, []);
   
   const handleResetToDefaults = useCallback(() => {
     setGenerationConfig(defaultGenerationConfig);
-    setExtraPrompt(defaultExtraPrompt);
+    setCreativity(defaultGenerationConfig.temperature);
+    setExtraPrompt('');
   }, []);
 
   const handleReferenceImageChange = (file: File | null) => {
     setReferenceImageFile(file);
-    // Do not reset the entire generation here, only if URL changes.
   };
 
   const handleUrlChange = (url: string) => {
@@ -133,10 +158,18 @@ const App: React.FC = () => {
   
   const handleImageCountChange = (count: number) => {
     setNumberOfImages(count);
-    // Only reset if images have already been generated
     if (generatedImages) {
         handleReset();
     }
+  };
+  
+  const handleClearHistory = () => {
+    clearHistory();
+    setHistory([]);
+  };
+
+  const showToast = (message: string, type: 'warning' | 'info' = 'info') => {
+    setToast({ id: Date.now(), message, type });
   };
 
   const getBaseQRCode = useCallback(async (): Promise<{data: string, mimeType: MimeType}> => {
@@ -145,8 +178,9 @@ const App: React.FC = () => {
         return { data: baseQrCode, mimeType: 'image/png' };
       }
       setAppState(AppState.GENERATING_BASE_QR);
+      setProgress(0.1);
       const base64Data = await generateQRCodeFromURL(websiteUrl);
-      setBaseQrCode(base64Data); // Cache the generated QR code
+      setBaseQrCode(base64Data);
       return { data: base64Data, mimeType: 'image/png' };
     }
     throw new Error("No URL provided to generate QR code.");
@@ -155,18 +189,32 @@ const App: React.FC = () => {
   const validateAndSetImages = async (base64Images: string[]) => {
     setGeneratedImages(base64Images);
     setAppState(AppState.VALIDATING);
+    setProgress(0.85);
     const initialResults: ValidationResult[] = base64Images.map(() => ({ status: 'pending', data: null }));
     setValidationResults(initialResults);
 
-    for (let i = 0; i < base64Images.length; i++) {
-      const result = await validateQRCode(base64Images[i]);
+    await Promise.all(base64Images.map(async (img, i) => {
+      const result = await validateQRCode(img);
       setValidationResults(prev => {
         const newResults = [...prev];
         newResults[i] = result;
         return newResults;
       });
-    }
+    }));
+    
+    // Save to history on successful generation
+    const newHistoryItem: HistoryItem = {
+      id: `${Date.now()}`,
+      images: base64Images,
+      url: websiteUrl,
+      extraPrompt: extraPrompt,
+      timestamp: Date.now(),
+    };
+    saveGenerationToHistory(newHistoryItem);
+    setHistory(prev => [newHistoryItem, ...prev]);
+
     setAppState(AppState.SUCCESS);
+    setProgress(1);
   };
   
   const getReferenceImage = useCallback(async (): Promise<{ data: string; mimeType: MimeType; } | undefined> => {
@@ -181,113 +229,137 @@ const App: React.FC = () => {
   }, [referenceImageFile]);
 
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(() => {
     if (!websiteUrl) {
       setErrorMessage('Please enter a website URL.');
       return;
     }
     
-    if (dailyGenerationsLeft <= 0) {
-      setErrorMessage("You've reached your daily limit of 10 generations. Please try again tomorrow.");
+    if (dailyGenerationsLeft < numberOfImages) {
+      showToast(`You only have ${dailyGenerationsLeft} generations left.`, 'warning');
       return;
     }
-
-    handleReset();
-
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const newCount = dailyGenerationsLeft - 1;
-      setDailyGenerationsLeft(newCount);
-      setCookie(COOKIE_NAME, JSON.stringify({ count: newCount, lastReset: today }), 1);
-      
-      const { data: qrCodeImageBase64, mimeType } = await getBaseQRCode();
-      
-      setAppState(AppState.LOADING_THEME);
-      const themeDescription = await getWebsiteTheme(websiteUrl, customApiKey || null);
-      
-      const referenceImage = await getReferenceImage();
-
-      setAppState(AppState.LOADING_QR_CODE);
-      const newImageBase64Array = await generateThemedQRCode(
-        themeDescription, 
-        qrCodeImageBase64, 
-        mimeType, 
-        numberOfImages,
-        generationConfig,
-        extraPrompt,
-        customApiKey || null,
-        referenceImage
-      );
-      
-      await validateAndSetImages(newImageBase64Array);
-
-    } catch (error) {
-      console.error(error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      setErrorMessage(`Generation failed: ${errorMessage}`);
-      setAppState(AppState.ERROR);
+    if (dailyGenerationsLeft <= 5) {
+      showToast(`You are running low on credits (${dailyGenerationsLeft} left).`, 'info');
     }
-  }, [websiteUrl, numberOfImages, generationConfig, extraPrompt, handleReset, customApiKey, getBaseQRCode, getReferenceImage, dailyGenerationsLeft]);
 
-  const handleRegenerate = useCallback(async (indexToRegenerate: number) => {
-    setErrorMessage('');
-    try {
-      const { data: qrCodeImageBase64, mimeType } = await getBaseQRCode();
-      
-      // Update state for just the one being regenerated
-      setValidationResults(prev => {
-        const newResults = [...prev];
-        newResults[indexToRegenerate] = { status: 'pending', data: null };
-        return newResults;
-      });
-      
-      const themeDescription = await getWebsiteTheme(websiteUrl, customApiKey || null);
-      const referenceImage = await getReferenceImage();
-      
-      const newImageBase64Array = await generateThemedQRCode(
-        themeDescription, 
-        qrCodeImageBase64, 
-        mimeType, 
-        1, // only generate one
-        {...generationConfig, seed: Math.floor(Math.random() * 1000000)}, // use a new random seed
-        extraPrompt,
-        customApiKey || null,
-        referenceImage
-      );
+    addTask(async () => {
+      handleReset();
+      setIsInitialGeneration(true); // Set flag for initial generation animation
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const newCount = dailyGenerationsLeft - numberOfImages;
+        setDailyGenerationsLeft(newCount);
+        setCookie(COOKIE_NAME, JSON.stringify({ count: newCount, lastReset: today }), 1);
+        
+        const { data: qrCodeImageBase64, mimeType } = await getBaseQRCode();
+        
+        setAppState(AppState.LOADING_THEME);
+        setProgress(0.3);
+        const themeDescription = await getWebsiteTheme(websiteUrl, customApiKey || null);
+        
+        const referenceImage = await getReferenceImage();
 
-      const newImageBase64 = newImageBase64Array[0];
-      const validationResult = await validateQRCode(newImageBase64);
+        setAppState(AppState.LOADING_QR_CODE);
+        setProgress(0.6);
+        const newImageBase64Array = await generateThemedQRCode(
+          themeDescription, 
+          qrCodeImageBase64, 
+          mimeType, 
+          numberOfImages,
+          { ...generationConfig, temperature: creativity },
+          extraPrompt,
+          readability,
+          styleStrength,
+          customApiKey || null,
+          referenceImage
+        );
+        
+        await validateAndSetImages(newImageBase64Array);
 
-      // Update the specific image and its validation result
-      setGeneratedImages(prev => {
-        if (!prev) return null;
-        const newImages = [...prev];
-        newImages[indexToRegenerate] = newImageBase64;
-        return newImages;
-      });
-      setValidationResults(prev => {
-        const newResults = [...prev];
-        newResults[indexToRegenerate] = validationResult;
-        return newResults;
-      });
-
-    } catch (error) {
+      } catch (error) {
         console.error(error);
-        setErrorMessage(`Regeneration failed for image ${indexToRegenerate + 1}.`);
+        const errMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        setErrorMessage(`Generation failed: ${errMessage}`);
+        setAppState(AppState.ERROR);
+        setProgress(0);
+      }
+    });
+  }, [websiteUrl, numberOfImages, generationConfig, extraPrompt, handleReset, customApiKey, getBaseQRCode, getReferenceImage, dailyGenerationsLeft, readability, styleStrength, creativity, addTask]);
+
+  const handleRegenerate = useCallback((indexToRegenerate: number) => {
+    if (dailyGenerationsLeft < 1) {
+      showToast("You've reached your daily limit for today.", 'warning');
+      return;
     }
-  }, [websiteUrl, generationConfig, extraPrompt, customApiKey, getBaseQRCode, getReferenceImage]);
+    
+    addTask(async () => {
+      setErrorMessage('');
+      setIsInitialGeneration(false); // Set flag to prevent all cards from animating
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const newCount = dailyGenerationsLeft - 1;
+        setDailyGenerationsLeft(newCount);
+        setCookie(COOKIE_NAME, JSON.stringify({ count: newCount, lastReset: today }), 1);
+
+        const { data: qrCodeImageBase64, mimeType } = await getBaseQRCode();
+        
+        setValidationResults(prev => {
+          const newResults = [...prev];
+          newResults[indexToRegenerate] = { status: 'pending', data: null };
+          return newResults;
+        });
+        
+        const themeDescription = await getWebsiteTheme(websiteUrl, customApiKey || null);
+        const referenceImage = await getReferenceImage();
+        
+        // Note: For regeneration, we only request 1 image from the API
+        const newImageBase64Array = await generateThemedQRCode(
+          themeDescription, 
+          qrCodeImageBase64, 
+          mimeType, 
+          1,
+          {...generationConfig, seed: Math.floor(Math.random() * 1000000), temperature: creativity },
+          extraPrompt,
+          readability,
+          styleStrength,
+          customApiKey || null,
+          referenceImage
+        );
+
+        const newImageBase64 = newImageBase64Array[0];
+        const validationResult = await validateQRCode(newImageBase64);
+
+        setGeneratedImages(prev => {
+          if (!prev) return null;
+          const newImages = [...prev];
+          newImages[indexToRegenerate] = newImageBase64;
+          return newImages;
+        });
+        setValidationResults(prev => {
+          const newResults = [...prev];
+          newResults[indexToRegenerate] = validationResult;
+          return newResults;
+        });
+
+      } catch (error) {
+          console.error(error);
+          setErrorMessage(`Regeneration failed for image ${indexToRegenerate + 1}.`);
+      }
+    });
+  }, [websiteUrl, generationConfig, extraPrompt, customApiKey, getBaseQRCode, getReferenceImage, readability, styleStrength, creativity, dailyGenerationsLeft, addTask]);
 
   const isValidUrl = (url: string) => {
     try {
       new URL(url);
       return true;
     } catch (_) {
-      return url.length === 0; // Allow empty
+      return url.length === 0;
     }
   };
 
   const isFormValid = websiteUrl.length > 0 && isValidUrl(websiteUrl);
-  const isLoading = [
+  const isLoading = isProcessing || [
     AppState.GENERATING_BASE_QR,
     AppState.LOADING_THEME,
     AppState.LOADING_QR_CODE,
@@ -296,6 +368,8 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-transparent text-base-content font-sans">
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
+      {lightboxImage && <Lightbox imageSrc={lightboxImage} onClose={() => setLightboxImage(null)} />}
       <Header onSettingsClick={() => setIsSidebarOpen(true)} />
       <Sidebar 
         isOpen={isSidebarOpen} 
@@ -313,10 +387,19 @@ const App: React.FC = () => {
         setCustomImageUrl={setCustomImageUrl}
         customApiKey={customApiKey}
         setCustomApiKey={setCustomApiKey}
+        readability={readability}
+        setReadability={setReadability}
+        styleStrength={styleStrength}
+        setStyleStrength={setStyleStrength}
+        creativity={creativity}
+        setCreativity={setCreativity}
+        history={history}
+        onClearHistory={handleClearHistory}
+        onImageClick={setLightboxImage}
       />
 
       <main className="container mx-auto p-4 md:p-8">
-        <div className="max-w-7xl mx-auto bg-base-100 rounded-2xl shadow-lg p-6 md:p-10">
+        <div className="max-w-7xl mx-auto bg-base-100 rounded-2xl shadow-lg p-6 md:p-10 animate-fade-in-up">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
             {/* Input Column */}
             <div className="lg:col-span-2 flex flex-col space-y-6">
@@ -336,17 +419,22 @@ const App: React.FC = () => {
                 <p className="text-sm font-semibold text-base-content">
                   Daily Generations Left: {dailyGenerationsLeft} / {DAILY_LIMIT}
                 </p>
+                 {isProcessing && tasks.length > 0 && (
+                    <p className="text-xs text-brand-secondary animate-pulse mt-1">
+                        {tasks.length} task(s) in queue...
+                    </p>
+                )}
               </div>
 
               <button
                 onClick={handleSubmit}
-                disabled={!isFormValid || isLoading || dailyGenerationsLeft <= 0}
-                className="w-full flex items-center justify-center gap-3 text-lg font-semibold py-4 px-6 rounded-xl text-white transition-all duration-300 ease-in-out bg-gradient-to-r from-brand-primary to-brand-secondary hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none"
+                disabled={!isFormValid || isLoading || dailyGenerationsLeft < numberOfImages}
+                className="w-full flex items-center justify-center gap-3 text-lg font-semibold py-4 px-6 rounded-xl text-white transition-all duration-300 ease-out-quad bg-gradient-to-r from-brand-primary to-brand-secondary hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="animate-spin h-6 w-6" />
-                    <span>Generating...</span>
+                    <span>Processing...</span>
                   </>
                 ) : (
                   <>
@@ -370,7 +458,12 @@ const App: React.FC = () => {
                 validationResults={validationResults}
                 referenceImageFile={referenceImageFile}
                 websiteUrl={websiteUrl}
+                extraPrompt={extraPrompt}
                 onRegenerate={handleRegenerate}
+                isProcessing={isProcessing}
+                progress={progress}
+                isInitialGeneration={isInitialGeneration}
+                onImageClick={setLightboxImage}
               />
               <AdBanner />
             </div>

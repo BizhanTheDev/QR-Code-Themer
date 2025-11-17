@@ -63,6 +63,8 @@ export async function getWebsiteTheme(url: string, customApiKey?: string | null)
  * @param {number} numberOfImages The number of QR code variations to generate.
  * @param {GenerationConfig} generationConfig Advanced generation settings.
  * @param {string} extraPrompt Additional user instructions.
+ * @param {number} readability A value from 0-1 controlling the QR code's scannability vs. artistic freedom.
+ * @param {number} styleStrength A value from 0-1 controlling how strongly the theme is applied.
  * @param {string | null} [customApiKey] - An optional user-provided API key.
  * @param {{ data: string; mimeType: MimeType; } | undefined} [referenceImage] - An optional reference image for styling.
  * @returns {Promise<string[]>} A promise that resolves to an array of base64-encoded image strings.
@@ -74,42 +76,48 @@ export async function generateThemedQRCode(
   numberOfImages: number,
   generationConfig: GenerationConfig,
   extraPrompt: string,
+  readability: number,
+  styleStrength: number,
   customApiKey?: string | null,
   referenceImage?: { data: string; mimeType: MimeType }
 ): Promise<string[]> {
   const ai = getAiClient(customApiKey);
   
-  // This is the core instruction for the image generation model.
-  // It's a detailed "prompt" that tells the AI exactly what to do.
-  const basePrompt = referenceImage 
-  ? `
-    You are a creative graphic designer specializing in QR codes.
-    Your task is to artistically redesign the first provided image (the QR code) based on two sources of inspiration:
-    1. THEME DESCRIPTION: "${theme}"
-    2. REFERENCE IMAGE: The second image provided is a reference for the desired visual style, color palette, and mood. Draw inspiration from it.
+  // Map slider values to descriptive terms for the prompt.
+  const readabilityMap = {
+    high: 'Must have extreme contrast and rigidly preserve the QR code structure.',
+    medium: 'Should have high contrast and clearly preserve the QR code structure, allowing for some subtle integration.',
+    low: 'Can have more abstract and integrated styling, as long as the core QR code data modules are logically distinguishable.'
+  };
 
-    ${extraPrompt ? `ADDITIONAL INSTRUCTIONS: "${extraPrompt}"\n` : ''}
+  const styleStrengthMap = {
+    high: 'The design should be fully immersive and highly artistic, deeply integrating the theme. The QR code should feel like a piece of art.',
+    medium: 'The theme should be clearly visible and stylistically integrated into the QR code, balancing art with function.',
+    low: 'Apply only a subtle hint of the theme, focusing primarily on the basic QR code structure with minor thematic elements.'
+  };
 
-    **CRITICAL INSTRUCTIONS:**
-    1.  **MAXIMIZE SCANABILITY THROUGH CONTRAST:** This is the most important rule. The final image MUST be a fully functional, scannable QR code. To achieve this, you MUST use high contrast between the dark and light modules of the QR code.
-    2.  **PRESERVE DATA INTEGRITY:** The core data patterns of the QR code must be maintained.
-    3.  **APPLY THEME CREATIVELY BUT SAFELY:** Infuse the QR code with the theme's style, but **only after** satisfying the high-contrast rule.
-    4.  **DO NOT ADD TEXT:** The final output should be the image only.
-  `
-  : `
+  const readabilityInstruction = readability > 0.66 ? readabilityMap.high : (readability > 0.33 ? readabilityMap.medium : readabilityMap.low);
+  const styleStrengthInstruction = styleStrength > 0.66 ? styleStrengthMap.high : (styleStrength > 0.33 ? styleStrengthMap.medium : styleStrengthMap.low);
+
+  const basePrompt = `
     You are a creative graphic designer specializing in QR codes.
-    Your task is to artistically redesign the provided QR code image based on the following theme, derived from a website's branding:
+    Your task is to artistically redesign the provided QR code image based on a theme.
+
+    **Theme Inspiration:**
+    ${referenceImage ? `The primary inspiration is the provided reference image. Also consider the theme description: "${theme}".` : `The theme is: "${theme}".`}
+
+    **Creative Controls:**
+    - **Readability:** ${readabilityInstruction} This is the most critical rule. The final image MUST be a scannable QR code.
+    - **Style Strength:** ${styleStrengthInstruction}
     
-    THEME: "${theme}"
+    ${extraPrompt ? `**User Instructions:** "${extraPrompt}"\n` : ''}
 
-    ${extraPrompt ? `ADDITIONAL INSTRUCTIONS: "${extraPrompt}"\n` : ''}
-
-    **CRITICAL INSTRUCTIONS:**
-    1.  **MAXIMIZE SCANABILITY THROUGH CONTRAST:** This is the most important rule. The final image MUST be a fully functional, scannable QR code. To achieve this, you MUST use high contrast between the dark and light modules of the QR code.
-    2.  **PRESERVE DATA INTEGRITY:** The core data patterns of the QR code must be maintained.
-    3.  **APPLY THEME CREATIVELY BUT SAFELY:** Infuse the QR code with the theme's style, but **only after** satisfying the high-contrast rule.
-    4.  **DO NOT ADD TEXT:** The final output should be the image only.
+    **Technical Rules:**
+    1.  Preserve the QR code's data integrity and quiet zone.
+    2.  Do not add any text unless it's part of the artistic design.
+    3.  Output the image only.
   `;
+
 
   const generationPromises = Array.from({ length: numberOfImages }, (_, i) => {
     const uniquePrompt = numberOfImages > 1 

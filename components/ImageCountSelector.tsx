@@ -20,11 +20,11 @@ const ImageCountSelector: React.FC<ImageCountSelectorProps> = ({ value, onChange
           <button
             key={option}
             onClick={() => onChange(option)}
-            className={`py-3 px-4 rounded-lg text-center font-bold text-lg transition-all duration-200 ease-in-out border-2
+            className={`py-3 px-4 rounded-lg text-center font-bold text-lg transition-all duration-200 ease-in-out border-2 transform
               ${
                 value === option
                   ? 'bg-brand-primary border-brand-primary text-white scale-105 shadow-lg'
-                  : 'bg-base-200 border-base-300 text-base-content-secondary hover:border-brand-secondary hover:text-base-content'
+                  : 'bg-base-200 border-base-300 text-base-content-secondary hover:border-brand-secondary hover:text-base-content hover:scale-105 active:scale-100'
               }`}
           >
             {option}
