@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, RefreshCw, SlidersHorizontal, ClipboardList, Info, ExternalLink, Palette, KeyRound, History, Trash2, Download } from 'lucide-react';
-import { GenerationConfig, BackgroundStyle, GradientConfig, PatternConfig, HistoryItem } from '../types';
+import { X, RefreshCw, SlidersHorizontal, ClipboardList, Info, ExternalLink, Palette, KeyRound, History, Trash2, Download, AlertTriangle } from 'lucide-react';
+import { GenerationConfig, BackgroundStyle, GradientConfig, PatternConfig, HistoryItem, QRShape } from '../types';
 import { defaultGenerationConfig } from '../config/defaults';
 import BackgroundSelector from './BackgroundSelector';
 import GenerationControls from './GenerationControls';
@@ -30,6 +30,10 @@ interface SidebarProps {
   history: HistoryItem[];
   onClearHistory: () => void;
   onImageClick: (imageBase64: string) => void;
+  shape: QRShape;
+  setShape: (value: QRShape) => void;
+  isGlassTheme: boolean;
+  setIsGlassTheme: (value: boolean) => void;
 }
 
 const DefaultValue = ({ label, value }: { label: string, value: string | number }) => (
@@ -50,10 +54,12 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     setCustomApiKey,
     history,
     onClearHistory,
-    onImageClick
+    onImageClick,
+    isGlassTheme,
+    setIsGlassTheme,
   } = props;
 
-  const [activeTab, setActiveTab] = useState<'finetune' | 'history' | 'advanced' | 'api' | 'theme' | 'defaults'>('finetune');
+  const [activeTab, setActiveTab] = useState<'advanced' | 'history' | 'api' | 'theme' | 'defaults'>('advanced');
   
   const handleRandomizeSeed = () => {
     setConfig({ ...config, seed: Math.floor(Math.random() * 1000000) });
@@ -117,7 +123,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="sidebar-title"
-        className={`fixed top-0 right-0 h-full w-full max-w-2xl bg-base-100 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-full max-w-2xl shadow-2xl z-50 transform transition-all duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} ${isGlassTheme ? 'bg-base-100/50 backdrop-blur-lg border-l border-white/10' : 'bg-base-100'}`}
       >
         <div className="flex justify-between items-center p-4 border-b border-base-300">
           <h2 id="sidebar-title" className="text-2xl font-bold">Settings</h2>
@@ -129,29 +135,15 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
         {/* Tabs */}
         <div className="border-b border-base-300 px-2 sm:px-4">
             <nav className="-mb-px flex space-x-2 overflow-x-auto" aria-label="Tabs">
-                <TabButton target="finetune" icon={SlidersHorizontal} label="Fine-tune" current={activeTab} setter={setActiveTab} />
-                <TabButton target="history" icon={History} label="History" current={activeTab} setter={setActiveTab} />
                 <TabButton target="advanced" icon={SlidersHorizontal} label="Advanced" current={activeTab} setter={setActiveTab} />
-                <TabButton target="api" icon={KeyRound} label="API" current={activeTab} setter={setActiveTab} />
+                <TabButton target="history" icon={History} label="History" current={activeTab} setter={setActiveTab} />
                 <TabButton target="theme" icon={Palette} label="Theme" current={activeTab} setter={setActiveTab} />
+                <TabButton target="api" icon={KeyRound} label="API" current={activeTab} setter={setActiveTab} />
                 <TabButton target="defaults" icon={ClipboardList} label="Defaults" current={activeTab} setter={setActiveTab} />
             </nav>
         </div>
 
-        <div className="overflow-y-auto h-[calc(100%-121px)]">
-          {activeTab === 'finetune' && (
-            <div className="p-6">
-                <h3 className="text-lg font-semibold text-base-content mb-3">Creative Controls</h3>
-                <GenerationControls 
-                  readability={props.readability}
-                  setReadability={props.setReadability}
-                  styleStrength={props.styleStrength}
-                  setStyleStrength={props.setStyleStrength}
-                  creativity={props.creativity}
-                  setCreativity={props.setCreativity}
-                />
-            </div>
-          )}
+        <div className="overflow-y-auto h-[calc(100%-121px)] styled-scrollbar">
           {activeTab === 'history' && (
             <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
@@ -166,9 +158,12 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         </button>
                     )}
                 </div>
-                 <p className="text-xs text-base-content-secondary mb-4">
-                    Your past generations are saved in your browser's local storage.
-                </p>
+                <div className="flex items-start gap-2 p-3 text-xs text-yellow-200 bg-yellow-600/20 rounded-lg border border-yellow-500/30 mb-4">
+                    <AlertTriangle className="w-6 h-6 flex-shrink-0 text-yellow-400" />
+                    <span>
+                        History is stored in your browser's local storage and may be cleared automatically. Download any QR codes you want to keep.
+                    </span>
+                </div>
                 {history.length === 0 ? (
                     <div className="text-center py-10">
                         <History className="mx-auto h-12 w-12 text-base-300" />
@@ -232,54 +227,70 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             </div>
           )}
           {activeTab === 'advanced' && (
-            <div className="p-6 space-y-6">
-              <div>
-                <label htmlFor="seed" className="block text-sm font-medium text-base-content-secondary mb-1">Seed</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    id="seed"
-                    value={config.seed ?? ''}
-                    onChange={(e) => setConfig({ ...config, seed: e.target.value ? parseInt(e.target.value, 10) : undefined })}
-                    placeholder="Random"
-                    className="w-full px-3 py-2 text-base bg-base-200 border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
-                  />
-                  <button onClick={handleRandomizeSeed} title="Randomize Seed" className="p-2 bg-base-300 rounded-lg hover:bg-brand-primary hover:text-white transition-all duration-200 transform hover:scale-110 hover:rotate-12">
-                    <RefreshCw className="w-5 h-5" />
-                  </button>
+            <div className="p-6">
+                <div className="space-y-6">
+                  <div>
+                      <h3 className="text-lg font-semibold text-base-content mb-3">Creative Controls</h3>
+                      <GenerationControls 
+                        readability={props.readability}
+                        setReadability={props.setReadability}
+                        styleStrength={props.styleStrength}
+                        setStyleStrength={props.setStyleStrength}
+                        creativity={props.creativity}
+                        setCreativity={props.setCreativity}
+                      />
+                  </div>
+                  <div className="border-t border-base-300 !mt-6 pt-6">
+                      <h3 className="text-lg font-semibold text-base-content mb-3">Model Parameters</h3>
+                      <div>
+                          <label htmlFor="seed" className="block text-sm font-medium text-base-content-secondary mb-1">Seed</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              id="seed"
+                              value={config.seed ?? ''}
+                              onChange={(e) => setConfig({ ...config, seed: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                              placeholder="Random"
+                              className="w-full px-3 py-2 text-base bg-base-200 border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
+                            />
+                            <button onClick={handleRandomizeSeed} title="Randomize Seed" className="p-2 bg-base-300 rounded-lg hover:bg-brand-primary hover:text-white transition-all duration-200 transform hover:scale-110 hover:rotate-12">
+                              <RefreshCw className="w-5 h-5" />
+                            </button>
+                          </div>
+                          <p className="text-xs text-base-content-secondary mt-1">Controls randomness. Same seed + prompt = same image.</p>
+                      </div>
+
+                      <div className="mt-4">
+                          <label htmlFor="topP" className="block text-sm font-medium text-base-content-secondary mb-1">Style Focus (Top-P): {config.topP}</label>
+                          <input
+                            type="range"
+                            id="topP"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={config.topP}
+                            onChange={(e) => setConfig({ ...config, topP: parseFloat(e.target.value) })}
+                            className="w-full h-2 bg-base-300 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+                          />
+                          <p className="text-xs text-base-content-secondary mt-1">Alternative to creativity sampling.</p>
+                      </div>
+
+                      <div className="mt-4">
+                          <label htmlFor="topK" className="block text-sm font-medium text-base-content-secondary mb-1">Token Variety (Top-K): {config.topK}</label>
+                          <input
+                            type="range"
+                            id="topK"
+                            min="1"
+                            max="100"
+                            step="1"
+                            value={config.topK}
+                            onChange={(e) => setConfig({ ...config, topK: parseInt(e.target.value, 10) })}
+                            className="w-full h-2 bg-base-300 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+                          />
+                          <p className="text-xs text-base-content-secondary mt-1">Limits the prediction to the K most likely tokens.</p>
+                      </div>
+                  </div>
                 </div>
-                <p className="text-xs text-base-content-secondary mt-1">Controls randomness. Same seed + prompt = same image.</p>
-              </div>
-
-              <div>
-                <label htmlFor="topP" className="block text-sm font-medium text-base-content-secondary mb-1">Style Focus (Top-P): {config.topP}</label>
-                <input
-                  type="range"
-                  id="topP"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={config.topP}
-                  onChange={(e) => setConfig({ ...config, topP: parseFloat(e.target.value) })}
-                  className="w-full h-2 bg-base-300 rounded-lg appearance-none cursor-pointer accent-brand-primary"
-                />
-                <p className="text-xs text-base-content-secondary mt-1">Alternative to creativity sampling.</p>
-              </div>
-
-              <div>
-                <label htmlFor="topK" className="block text-sm font-medium text-base-content-secondary mb-1">Token Variety (Top-K): {config.topK}</label>
-                 <input
-                  type="range"
-                  id="topK"
-                  min="1"
-                  max="100"
-                  step="1"
-                  value={config.topK}
-                  onChange={(e) => setConfig({ ...config, topK: parseInt(e.target.value, 10) })}
-                  className="w-full h-2 bg-base-300 rounded-lg appearance-none cursor-pointer accent-brand-primary"
-                />
-                 <p className="text-xs text-base-content-secondary mt-1">Limits the prediction to the K most likely tokens.</p>
-              </div>
             </div>
           )}
           {activeTab === 'api' && (
@@ -376,7 +387,30 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
           )}
           {activeTab === 'theme' && (
             <div className="p-6">
-              <BackgroundSelector {...props} />
+              <div className="space-y-6">
+                  <div>
+                    <BackgroundSelector {...props} />
+                  </div>
+                   <div className="border-t border-base-300 pt-6">
+                        <h3 className="text-lg font-semibold text-base-content mb-3">UI Effect</h3>
+                        <div className="flex items-center justify-between p-4 bg-base-200 rounded-lg border border-base-300">
+                          <div className="flex-grow">
+                            <label htmlFor="isGlass" className="font-medium text-base-content">Liquid Glass Effect</label>
+                            <p className="text-xs text-base-content-secondary mt-1">Apply a semi-transparent, blurred effect to the UI.</p>
+                          </div>
+                           <label htmlFor="isGlass" className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
+                                <input 
+                                    type="checkbox" 
+                                    id="isGlass"
+                                    checked={isGlassTheme}
+                                    onChange={(e) => setIsGlassTheme(e.target.checked)}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-base-300 rounded-full peer peer-focus:ring-2 peer-focus:ring-brand-primary peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+                            </label>
+                        </div>
+                    </div>
+              </div>
             </div>
           )}
         </div>

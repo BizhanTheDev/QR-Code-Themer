@@ -56,6 +56,11 @@
               'toast-out': 'toast-out 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
               'lightbox-in': 'lightbox-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
               'lightbox-out': 'lightbox-out 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+              'subtle-pulse': 'subtle-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'lava-1': 'lava-1 60s ease-in-out infinite',
+              'lava-2': 'lava-2 50s ease-in-out infinite',
+              'lava-3': 'lava-3 70s ease-in-out infinite',
+              'lava-4': 'lava-4 40s ease-in-out infinite',
             },
             keyframes: {
               fadeIn: {
@@ -105,6 +110,34 @@
                 '0%': { opacity: 1, transform: 'scale(1)' },
                 '100%': { opacity: 0, transform: 'scale(0.8)' },
               },
+               'subtle-pulse': {
+                '0%, 100%': { transform: 'scale(1)', },
+                '50%': { transform: 'scale(1.05)', },
+              },
+              'lava-1': {
+                '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+                '25%': { transform: 'translate(40vw, 10vh) rotate(90deg)' },
+                '50%': { transform: 'translate(-10vw, 30vh) rotate(180deg)' },
+                '75%': { transform: 'translate(20vw, -20vh) rotate(270deg)' },
+              },
+              'lava-2': {
+                '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+                '25%': { transform: 'translate(-30vw, 20vh) rotate(-90deg)' },
+                '50%': { transform: 'translate(20vw, -10vh) rotate(-180deg)' },
+                '75%': { transform: 'translate(-10vw, 40vh) rotate(-270deg)' },
+              },
+              'lava-3': {
+                '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+                '25%': { transform: 'translate(10vw, -30vh) rotate(45deg)' },
+                '50%': { transform: 'translate(30vw, 30vh) rotate(135deg)' },
+                '75%': { transform: 'translate(-20vw, 10vh) rotate(225deg)' },
+              },
+              'lava-4': {
+                '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+                '25%': { transform: 'translate(20vw, 20vh) rotate(-45deg)' },
+                '50%': { transform: 'translate(-10vw, -20vh) rotate(-135deg)' },
+                '75%': { transform: 'translate(30vw, -10vh) rotate(-225deg)' },
+              },
             },
              backgroundSize: {
               '200%': '200% 200%',
@@ -114,6 +147,21 @@
         }
       }
     </script>
+    <style>
+      .styled-scrollbar::-webkit-scrollbar {
+        width: 10px;
+      }
+      .styled-scrollbar::-webkit-scrollbar-track {
+        background: #1f2937; /* base-100 */
+        border-radius: 10px;
+      }
+      .styled-scrollbar::-webkit-scrollbar-thumb {
+        background: linear-gradient(45deg, #6366f1, #8b5cf6); /* brand-primary, brand-secondary */
+        border-radius: 10px;
+        animation: gradientShift 5s ease infinite;
+        background-size: 200% 200%;
+      }
+    </style>
     
   <script type="importmap">
 {

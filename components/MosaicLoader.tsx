@@ -43,7 +43,7 @@ const MosaicLoader: React.FC<MosaicLoaderProps> = ({ progress, appState }) => {
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden shadow-inner">
                  <div 
-                    className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary transition-all duration-1000 ease-out-quad"
+                    className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary transition-all duration-1000 ease-out-quad animate-gradient-shift bg-300%"
                     style={{ width: `${progress * 100}%` }}
                 />
             </div>

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Layers, Image as ImageIcon, Sparkles, Camera, Trash2 } from 'lucide-react';
-import { BackgroundStyle, GradientConfig, PatternConfig } from '../types';
+import { BackgroundStyle, GradientConfig, PatternConfig, QRShape } from '../types';
 import GradientEditor from './GradientEditor';
 import PatternEditor from './PatternEditor';
 
@@ -13,6 +13,8 @@ interface BackgroundSelectorProps {
   setPatternConfig: (config: PatternConfig) => void;
   customImageUrl: string | null;
   setCustomImageUrl: (url: string | null) => void;
+  shape: QRShape;
+  setShape: (value: QRShape) => void;
 }
 
 const BackgroundSelector: React.FC<BackgroundSelectorProps> = (props) => {
@@ -87,10 +89,10 @@ const BackgroundSelector: React.FC<BackgroundSelectorProps> = (props) => {
               <option.icon className="w-6 h-6 flex-shrink-0" />
               <span className="font-semibold">{option.name}</span>
             </button>
-            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${selected === option.id ? 'max-h-96' : 'max-h-0'}`}>
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${selected === option.id ? 'max-h-[500px]' : 'max-h-0'}`}>
                 <div className="pt-3">
                     {option.id === 'gradient' && <GradientEditor config={props.gradientConfig} setConfig={props.setGradientConfig} />}
-                    {option.id === 'pattern' && <PatternEditor config={props.patternConfig} setConfig={props.setPatternConfig} />}
+                    {option.id === 'pattern' && <PatternEditor config={props.patternConfig} setConfig={props.setPatternConfig} shape={props.shape} setShape={props.setShape} />}
                 </div>
             </div>
           </div>

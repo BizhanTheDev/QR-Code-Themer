@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { generateThemedQRCode, getWebsiteTheme } from './services/geminiService';
 import { generateQRCodeFromURL, validateQRCode } from './utils/qrUtils';
-import { AppState, MimeType, GenerationConfig, ValidationResult, BackgroundStyle, GradientConfig, PatternConfig, HistoryItem } from './types';
+import { AppState, MimeType, GenerationConfig, ValidationResult, BackgroundStyle, GradientConfig, PatternConfig, HistoryItem, QRShape } from './types';
 import Header from './components/Header';
 import URLInput from './components/URLInput';
 import QRCodeUploader from './components/QRCodeUploader';
@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null);
   const [websiteUrl, setWebsiteUrl] = useState<string>('');
   const [numberOfImages, setNumberOfImages] = useState<number>(1);
+  const [shape, setShape] = useState<QRShape>('squares');
   const [extraPrompt, setExtraPrompt] = useState<string>('');
   const [baseQrCode, setBaseQrCode] = useState<string | null>(null);
   
@@ -57,6 +58,7 @@ const App: React.FC = () => {
   const [gradientConfig, setGradientConfig] = useState<GradientConfig>(defaultGradientConfig);
   const [patternConfig, setPatternConfig] = useState<PatternConfig>(defaultPatternConfig);
   const [customImageUrl, setCustomImageUrl] = useState<string | null>(null);
+  const [isGlassTheme, setIsGlassTheme] = useState<boolean>(false);
 
   // History state
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -98,9 +100,12 @@ const App: React.FC = () => {
   useEffect(() => {
     const bgElement = document.getElementById('body-bg');
     if (bgElement) {
+      // Cleanup from previous state
       bgElement.className = 'fixed inset-0 -z-10 transition-all duration-500';
       bgElement.style.backgroundImage = '';
       bgElement.style.backgroundColor = '';
+      bgElement.style.filter = '';
+      bgElement.innerHTML = '';
 
       switch (backgroundStyle) {
         case 'gradient':
@@ -112,12 +117,65 @@ const App: React.FC = () => {
             bgElement.classList.add('animate-gradient-shift', 'bg-300%');
           }
           break;
-        case 'pattern':
-          const encodedColor = encodeURIComponent(patternConfig.color);
-          const svgPattern = `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3e%3cpath d='M0 0L4 4L8 0L4 0L0 0Z M0 8L4 4L8 8L4 8L0 8Z' fill='${encodedColor}' fill-opacity='${patternConfig.opacity}'%3e%3c/path%3e%3c/svg%3e")`;
-          bgElement.style.backgroundImage = svgPattern;
-          bgElement.style.backgroundColor = 'var(--color-base-200, #111827)';
-          break;
+        case 'pattern': {
+            if (shape === 'fluid') {
+                const { fromColor, viaColor, toColor } = gradientConfig;
+                const { size, fluidComplexity, fluidSpeed, fluidBlur } = patternConfig;
+                
+                bgElement.style.backgroundColor = 'var(--color-base-200, #111827)';
+                bgElement.style.filter = 'contrast(25)';
+
+                const fluidContainer = document.createElement('div');
+                fluidContainer.className = `absolute inset-0`;
+                if (fluidBlur) {
+                    fluidContainer.classList.add('filter', 'blur-[40px]');
+                }
+
+                const blobColors = [
+                    `linear-gradient(135deg, ${hexToRgb(fromColor)}, ${hexToRgb(viaColor)})`,
+                    `linear-gradient(135deg, ${hexToRgb(viaColor)}, ${hexToRgb(toColor)})`,
+                    `linear-gradient(135deg, ${hexToRgb(toColor)}, ${hexToRgb(fromColor)})`,
+                ];
+
+                let blobsHtml = '';
+                for (let i = 0; i < fluidComplexity; i++) {
+                    const blobSize = (size + Math.random() * 20 - 10);
+                    const animationName = `animate-lava-${(i % 4) + 1}`;
+                    const animationDuration = (120 - fluidSpeed) * (0.8 + Math.random() * 0.4);
+                    const top = `${Math.random() * 80}vh`;
+                    const left = `${Math.random() * 80}vw`;
+                    const color = blobColors[i % blobColors.length];
+
+                    blobsHtml += `<div class="absolute w-[${blobSize}vmax] h-[${blobSize}vmax] rounded-full ${animationName}" style="background: ${color}; animation-duration: ${animationDuration}s; top: ${top}; left: ${left};"></div>`;
+                }
+
+                fluidContainer.innerHTML = blobsHtml;
+                bgElement.innerHTML = ''; // Clear previous content
+                bgElement.appendChild(fluidContainer);
+            } else {
+                const encodedColor = encodeURIComponent(patternConfig.color);
+                const size = patternConfig.size || 10;
+
+                const svgContent: { [key in Exclude<QRShape, 'fluid'>]: string } = {
+                    squares: `<path d='M0 0h5v5H0z M5 5h5v5H5z' fill='${encodedColor}' fill-opacity='${patternConfig.opacity}'/>`,
+                    circles: `<circle cx='5' cy='5' r='2' fill='${encodedColor}' fill-opacity='${patternConfig.opacity}'/>`,
+                    diamonds: `<path d='M0 0L4 4L8 0L4 0L0 0Z M0 8L4 4L8 8L4 8L0 8Z' fill='${encodedColor}' fill-opacity='${patternConfig.opacity}'/>`,
+                };
+                
+                const viewBoxes: { [key in Exclude<QRShape, 'fluid'>]: string } = {
+                    squares: '0 0 10 10',
+                    circles: '0 0 10 10',
+                    diamonds: '0 0 8 8',
+                };
+                
+                const svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='${viewBoxes[shape]}'>${svgContent[shape]}</svg>`;
+                const svgPattern = `url("data:image/svg+xml,${encodeURIComponent(svgString)}")`;
+                
+                bgElement.style.backgroundImage = svgPattern;
+                bgElement.style.backgroundColor = 'var(--color-base-200, #111827)';
+            }
+            break;
+        }
         case 'image':
            if (customImageUrl) {
             bgElement.style.backgroundImage = `url(${customImageUrl})`;
@@ -130,7 +188,7 @@ const App: React.FC = () => {
           break;
       }
     }
-  }, [backgroundStyle, gradientConfig, patternConfig, customImageUrl]);
+  }, [backgroundStyle, gradientConfig, patternConfig, customImageUrl, shape]);
 
   const handleReset = useCallback(() => {
     setGeneratedImages(null);
@@ -396,13 +454,17 @@ const App: React.FC = () => {
         history={history}
         onClearHistory={handleClearHistory}
         onImageClick={setLightboxImage}
+        shape={shape}
+        setShape={setShape}
+        isGlassTheme={isGlassTheme}
+        setIsGlassTheme={setIsGlassTheme}
       />
 
       <main className="container mx-auto p-4 md:p-8">
-        <div className="max-w-7xl mx-auto bg-base-100 rounded-2xl shadow-lg p-6 md:p-10 animate-fade-in-up">
+        <div className={`max-w-7xl mx-auto rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 animate-fade-in-up transition-all duration-300 ${isGlassTheme ? 'bg-base-100/50 backdrop-blur-lg border border-white/10' : 'bg-base-100'}`}>
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
             {/* Input Column */}
-            <div className="lg:col-span-2 flex flex-col space-y-6">
+            <div className="lg:col-span-2 flex flex-col space-y-4 lg:space-y-6">
               
               <URLInput 
                 value={websiteUrl} 
@@ -451,7 +513,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Output Column */}
-            <div className="lg:col-span-3 flex flex-col items-center justify-start min-h-[400px]">
+            <div className="lg:col-span-3 flex flex-col items-center justify-start min-h-[300px] sm:min-h-[400px]">
               <GeneratedQRCode
                 appState={appState}
                 generatedImages={generatedImages}

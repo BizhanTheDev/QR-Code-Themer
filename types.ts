@@ -12,6 +12,8 @@ export type MimeType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/heic' 
 
 export type QRSource = 'upload' | 'generate';
 
+export type QRShape = 'squares' | 'circles' | 'diamonds' | 'fluid';
+
 export type ValidationStatus = 'pending' | 'valid' | 'invalid';
 
 export interface ValidationResult {
@@ -38,6 +40,10 @@ export interface GradientConfig {
 export interface PatternConfig {
   color: string;
   opacity: number;
+  size: number;
+  fluidSpeed: number;
+  fluidComplexity: number;
+  fluidBlur: boolean;
 }
 
 export interface HistoryItem {

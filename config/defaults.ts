@@ -28,4 +28,8 @@ export const defaultGradientConfig: GradientConfig = {
 export const defaultPatternConfig: PatternConfig = {
   color: '#374151',
   opacity: 0.1,
+  size: 10,
+  fluidSpeed: 50, // Default speed (out of 100)
+  fluidComplexity: 4, // Default number of blobs
+  fluidBlur: true, // Blur is on by default
 };

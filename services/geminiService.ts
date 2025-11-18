@@ -1,5 +1,5 @@
 import { GoogleGenAI, Modality } from "@google/genai";
-import { GenerationConfig, MimeType } from '../types';
+import { GenerationConfig, MimeType, QRShape } from '../types';
 
 /**
  * Initializes and returns a GoogleGenAI client.
@@ -113,7 +113,7 @@ export async function generateThemedQRCode(
     ${extraPrompt ? `**User Instructions:** "${extraPrompt}"\n` : ''}
 
     **Technical Rules:**
-    1.  Preserve the QR code's data integrity and quiet zone.
+    1.  Preserve the QR code's data integrity and quiet zone. The modules should be primarily square-shaped, honoring the traditional QR code look.
     2.  Do not add any text unless it's part of the artistic design.
     3.  Output the image only.
   `;

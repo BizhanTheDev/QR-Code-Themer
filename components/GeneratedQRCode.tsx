@@ -91,7 +91,7 @@ const GeneratedQRCode: React.FC<GeneratedQRCodeProps> = ({
   };
 
   return (
-    <div className="w-full h-full bg-base-200 rounded-xl flex items-center justify-center p-2 lg:p-4 min-h-[400px] overflow-hidden">
+    <div className="w-full h-full bg-base-200 rounded-xl flex items-center justify-center p-2 lg:p-4 min-h-[300px] sm:min-h-[400px] overflow-hidden">
       {renderContent()}
     </div>
   );
