@@ -49,7 +49,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   return (
     <div
       key={toast.id}
-      className={`fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 p-3 pr-8 rounded-lg text-white shadow-lg backdrop-blur-md ${animationClass} ${currentTheme.bg}`}
+      className={`fixed top-5 left-1/2 -translate-x-1/2 z-[70] flex items-center gap-3 p-3 pr-8 rounded-lg text-white shadow-lg backdrop-blur-md ${animationClass} ${currentTheme.bg}`}
       role="alert"
     >
       {currentTheme.icon}
