@@ -12,7 +12,7 @@ import Sidebar from './components/Sidebar';
 import AdBanner from './components/AdBanner';
 import Toast from './components/Toast';
 import Lightbox from './components/Lightbox';
-import { Loader2, Wand2 } from 'lucide-react';
+import { Loader2, Wand2, Zap, Sparkles, Smartphone } from 'lucide-react';
 import { defaultGenerationConfig, defaultGradientConfig, defaultPatternConfig } from './config/defaults';
 import { hexToRgb } from './utils/colorUtils';
 import { setCookie, getCookie } from './utils/cookieUtils';
@@ -531,8 +531,41 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
-        <footer className="text-center mt-8 text-base-content-secondary">
-          <p>  Powered by Gemini</p>
+
+        {/* SEO Content Section */}
+        <div className="max-w-7xl mx-auto mt-12 mb-8 grid grid-cols-1 md:grid-cols-3 gap-8 px-4 text-center md:text-left">
+            <div className="space-y-2">
+                <div className="flex items-center justify-center md:justify-start gap-2 text-brand-primary">
+                    <Zap className="w-5 h-5" />
+                    <h3 className="font-bold text-lg text-base-content">Instant AI Generation</h3>
+                </div>
+                <p className="text-sm text-base-content-secondary">
+                    Don't settle for boring black and white squares. Our AI analyzes your website's visual identity and generates custom QR codes that perfectly match your brand.
+                </p>
+            </div>
+             <div className="space-y-2">
+                <div className="flex items-center justify-center md:justify-start gap-2 text-brand-secondary">
+                    <Sparkles className="w-5 h-5" />
+                    <h3 className="font-bold text-lg text-base-content">Artistic & Scannable</h3>
+                </div>
+                <p className="text-sm text-base-content-secondary">
+                    Blending art with technology. We use advanced Gemini AI models to ensure your QR codes are stunningly artistic while remaining 100% scannable by any smartphone.
+                </p>
+            </div>
+             <div className="space-y-2">
+                <div className="flex items-center justify-center md:justify-start gap-2 text-blue-400">
+                    <Smartphone className="w-5 h-5" />
+                    <h3 className="font-bold text-lg text-base-content">Marketing Ready</h3>
+                </div>
+                <p className="text-sm text-base-content-secondary">
+                    Perfect for digital marketing, business cards, and flyers. Create a lasting impression with a QR code that tells your brand's story at a glance.
+                </p>
+            </div>
+        </div>
+
+        <footer className="text-center py-8 text-base-content-secondary border-t border-base-300/50 mt-8">
+          <p className="font-medium">QR Code Themer &copy; {new Date().getFullYear()}</p>
+          <p className="text-xs mt-2 opacity-70">Powered by Google Gemini AI</p>
         </footer>
       </main>
     </div>
