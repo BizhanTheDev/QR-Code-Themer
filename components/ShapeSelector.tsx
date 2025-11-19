@@ -34,7 +34,7 @@ const ShapeSelector: React.FC<ShapeSelectorProps> = ({ value, onChange }) => {
           </button>
         ))}
       </div>
-      <p className="text-xs text-base-content-secondary mt-1">Influences the core shape of the QR code modules.</p>
+      <p className="text-xs text-base-content-secondary mt-1">Influences the visual style of the background pattern.</p>
     </div>
   );
 };
