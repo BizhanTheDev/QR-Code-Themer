@@ -6,7 +6,8 @@
             http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 <url>
   <loc>https://qr-code-themer.vercel.app/</loc>
-  <lastmod>2024-05-22</lastmod>
+  <lastmod>2024-05-23</lastmod>
   <priority>1.00</priority>
+  <changefreq>weekly</changefreq>
 </url>
 </urlset>
