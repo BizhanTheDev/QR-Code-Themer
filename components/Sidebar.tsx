@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, RefreshCw, SlidersHorizontal, ClipboardList, Info, ExternalLink, Palette, KeyRound, History, Trash2, Download, AlertTriangle } from 'lucide-react';
+import { X, RefreshCw, SlidersHorizontal, ClipboardList, Info, ExternalLink, Palette, KeyRound, History, Trash2, Download, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { GenerationConfig, BackgroundStyle, GradientConfig, PatternConfig, HistoryItem, QRShape } from '../types';
 import { defaultGenerationConfig } from '../config/defaults';
 import BackgroundSelector from './BackgroundSelector';
@@ -34,6 +34,8 @@ interface SidebarProps {
   setShape: (value: QRShape) => void;
   isGlassTheme: boolean;
   setIsGlassTheme: (value: boolean) => void;
+  userDefinedLimit: number | null;
+  setUserDefinedLimit: (value: number | null) => void;
 }
 
 const DefaultValue = ({ label, value }: { label: string, value: string | number }) => (
@@ -57,6 +59,8 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     onImageClick,
     isGlassTheme,
     setIsGlassTheme,
+    userDefinedLimit,
+    setUserDefinedLimit
   } = props;
 
   const [activeTab, setActiveTab] = useState<'advanced' | 'history' | 'api' | 'theme' | 'defaults'>('advanced');
@@ -321,12 +325,45 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     </button>
                   )}
                 </div>
+                
                 {customApiKey ? (
-                  <p className="text-xs text-green-400 mt-1">Custom API key is active for this session.</p>
+                  <div className="mt-3">
+                      <div className="flex items-start gap-2 p-3 text-xs text-orange-200 bg-orange-600/20 rounded-lg border border-orange-500/30 mb-3 animate-fade-in">
+                          <ShieldAlert className="w-5 h-5 flex-shrink-0 text-orange-400" />
+                          <span>
+                              <strong>Warning:</strong> You are using your own API key. Generations will count against <strong>YOUR</strong> personal billing quotas with Google.
+                          </span>
+                      </div>
+                      <p className="text-xs text-green-400 mt-1">Custom API key is active. Unlimited generations enabled.</p>
+                  </div>
                 ) : (
                   <p className="text-xs text-base-content-secondary mt-1">Using the site's default API key.</p>
                 )}
               </div>
+              
+              {customApiKey && (
+                  <div className="border-t border-base-300 !mt-6 pt-6 animate-fade-in">
+                      <h3 className="text-lg font-semibold text-base-content flex items-center gap-2 mb-2">
+                          <Info className="h-5 w-5" />
+                          Usage Safety Limit
+                      </h3>
+                      <p className="text-xs text-base-content-secondary mb-3">
+                          Set a limit on how many images you can generate in this session to prevent accidental over-usage of your key. Leave empty for no limit.
+                      </p>
+                      <div>
+                           <label htmlFor="limit" className="block text-sm font-medium text-base-content-secondary mb-1">Session Limit (Optional)</label>
+                           <input
+                              type="number"
+                              id="limit"
+                              min="1"
+                              value={userDefinedLimit ?? ''}
+                              onChange={(e) => setUserDefinedLimit(e.target.value ? parseInt(e.target.value) : null)}
+                              placeholder="e.g., 50"
+                              className="w-full px-3 py-2 text-base bg-base-200 border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
+                           />
+                      </div>
+                  </div>
+              )}
 
                <div className="border-t border-base-300 !mt-6 pt-6">
                 <h3 className="text-lg font-semibold text-base-content flex items-center gap-2 mb-2">

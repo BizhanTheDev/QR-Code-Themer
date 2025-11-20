@@ -12,7 +12,7 @@ import Sidebar from './components/Sidebar';
 import AdBanner from './components/AdBanner';
 import Toast from './components/Toast';
 import Lightbox from './components/Lightbox';
-import { Loader2, Wand2, Zap, Sparkles, Smartphone } from 'lucide-react';
+import { Loader2, Wand2, Zap, Sparkles, Smartphone, AlertTriangle, Infinity as InfinityIcon, ShieldAlert } from 'lucide-react';
 import { defaultGenerationConfig, defaultGradientConfig, defaultPatternConfig } from './config/defaults';
 import { hexToRgb } from './utils/colorUtils';
 import { setCookie, getCookie } from './utils/cookieUtils';
@@ -20,6 +20,7 @@ import { useTaskQueue } from './hooks/useTaskQueue';
 import { getHistory, saveGenerationToHistory, clearHistory } from './utils/historyUtils';
 
 const DAILY_LIMIT = 20;
+const LOW_CREDIT_THRESHOLD = 8;
 const COOKIE_NAME = 'qrThemerDailyLimit';
 
 type ToastMessage = { id: number; message: string; type: 'warning' | 'info' } | null;
@@ -52,6 +53,10 @@ const App: React.FC = () => {
 
   // Daily limit state
   const [dailyGenerationsLeft, setDailyGenerationsLeft] = useState<number>(DAILY_LIMIT);
+  
+  // Custom Key Limits
+  const [userDefinedLimit, setUserDefinedLimit] = useState<number | null>(null);
+  const [sessionGenerationCount, setSessionGenerationCount] = useState<number>(0);
   
   // Theme state
   const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>('gradient');
@@ -293,22 +298,41 @@ const App: React.FC = () => {
       return;
     }
     
-    if (dailyGenerationsLeft < numberOfImages) {
-      showToast(`You only have ${dailyGenerationsLeft} generations left.`, 'warning');
-      return;
-    }
-    if (dailyGenerationsLeft <= 5) {
-      showToast(`You are running low on credits (${dailyGenerationsLeft} left).`, 'info');
+    const isUsingCustomKey = !!customApiKey;
+
+    // Check Limits based on Key usage
+    if (isUsingCustomKey) {
+        // Logic for custom key: Check user defined safety limit
+        if (userDefinedLimit !== null) {
+            if (sessionGenerationCount + numberOfImages > userDefinedLimit) {
+                showToast(`Session limit reached (${userDefinedLimit}). Adjust settings in API tab.`, 'warning');
+                return;
+            }
+        }
+    } else {
+        // Logic for default key: Check daily limit
+        if (dailyGenerationsLeft < numberOfImages) {
+            showToast(`You only have ${dailyGenerationsLeft} generations left.`, 'warning');
+            return;
+        }
+        if (dailyGenerationsLeft <= LOW_CREDIT_THRESHOLD) {
+            showToast(`You are running low on credits (${dailyGenerationsLeft} left).`, 'info');
+        }
     }
 
     addTask(async () => {
       handleReset();
       setIsInitialGeneration(true); // Set flag for initial generation animation
       try {
-        const today = new Date().toISOString().split('T')[0];
-        const newCount = dailyGenerationsLeft - numberOfImages;
-        setDailyGenerationsLeft(newCount);
-        setCookie(COOKIE_NAME, JSON.stringify({ count: newCount, lastReset: today }), 1);
+        // Update limits
+        if (isUsingCustomKey) {
+             setSessionGenerationCount(prev => prev + numberOfImages);
+        } else {
+            const today = new Date().toISOString().split('T')[0];
+            const newCount = dailyGenerationsLeft - numberOfImages;
+            setDailyGenerationsLeft(newCount);
+            setCookie(COOKIE_NAME, JSON.stringify({ count: newCount, lastReset: today }), 1);
+        }
         
         const { data: qrCodeImageBase64, mimeType } = await getBaseQRCode();
         
@@ -343,22 +367,35 @@ const App: React.FC = () => {
         setProgress(0);
       }
     });
-  }, [websiteUrl, numberOfImages, generationConfig, extraPrompt, handleReset, customApiKey, getBaseQRCode, getReferenceImage, dailyGenerationsLeft, readability, styleStrength, creativity, addTask]);
+  }, [websiteUrl, numberOfImages, generationConfig, extraPrompt, handleReset, customApiKey, getBaseQRCode, getReferenceImage, dailyGenerationsLeft, readability, styleStrength, creativity, addTask, userDefinedLimit, sessionGenerationCount]);
 
   const handleRegenerate = useCallback((indexToRegenerate: number) => {
-    if (dailyGenerationsLeft < 1) {
-      showToast("You've reached your daily limit for today.", 'warning');
-      return;
+    const isUsingCustomKey = !!customApiKey;
+
+    if (isUsingCustomKey) {
+         if (userDefinedLimit !== null && sessionGenerationCount + 1 > userDefinedLimit) {
+            showToast(`Session limit reached (${userDefinedLimit}).`, 'warning');
+            return;
+        }
+    } else {
+        if (dailyGenerationsLeft < 1) {
+            showToast("You've reached your daily limit for today.", 'warning');
+            return;
+        }
     }
     
     addTask(async () => {
       setErrorMessage('');
       setIsInitialGeneration(false); // Set flag to prevent all cards from animating
       try {
-        const today = new Date().toISOString().split('T')[0];
-        const newCount = dailyGenerationsLeft - 1;
-        setDailyGenerationsLeft(newCount);
-        setCookie(COOKIE_NAME, JSON.stringify({ count: newCount, lastReset: today }), 1);
+        if (isUsingCustomKey) {
+             setSessionGenerationCount(prev => prev + 1);
+        } else {
+            const today = new Date().toISOString().split('T')[0];
+            const newCount = dailyGenerationsLeft - 1;
+            setDailyGenerationsLeft(newCount);
+            setCookie(COOKIE_NAME, JSON.stringify({ count: newCount, lastReset: today }), 1);
+        }
 
         const { data: qrCodeImageBase64, mimeType } = await getBaseQRCode();
         
@@ -405,7 +442,7 @@ const App: React.FC = () => {
           setErrorMessage(`Regeneration failed for image ${indexToRegenerate + 1}.`);
       }
     });
-  }, [websiteUrl, generationConfig, extraPrompt, customApiKey, getBaseQRCode, getReferenceImage, readability, styleStrength, creativity, dailyGenerationsLeft, addTask]);
+  }, [websiteUrl, generationConfig, extraPrompt, customApiKey, getBaseQRCode, getReferenceImage, readability, styleStrength, creativity, dailyGenerationsLeft, addTask, userDefinedLimit, sessionGenerationCount]);
 
   const isValidUrl = (url: string) => {
     try {
@@ -458,6 +495,8 @@ const App: React.FC = () => {
         setShape={setShape}
         isGlassTheme={isGlassTheme}
         setIsGlassTheme={setIsGlassTheme}
+        userDefinedLimit={userDefinedLimit}
+        setUserDefinedLimit={setUserDefinedLimit}
       />
 
       <main className="container mx-auto p-4 md:p-8">
@@ -477,12 +516,37 @@ const App: React.FC = () => {
 
               <ExtraPromptInput value={extraPrompt} onChange={setExtraPrompt} />
               
-              <div className="text-center -mt-2 px-2">
-                <p className="text-sm font-semibold text-base-content">
-                  Daily Generations Left: {dailyGenerationsLeft} / {DAILY_LIMIT}
-                </p>
+              {/* Status / Credits Area */}
+              <div className="text-center -mt-2 px-2 transition-all duration-300">
+                {customApiKey ? (
+                     <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2">
+                        <div className="flex items-center justify-center gap-2 text-yellow-500 font-bold text-sm">
+                            <ShieldAlert className="w-4 h-4" />
+                            USING CUSTOM API KEY
+                        </div>
+                        <p className="text-xs text-yellow-500/80 mt-1">
+                            Generations are using your personal API quota.
+                        </p>
+                         {userDefinedLimit !== null && (
+                             <p className="text-xs font-mono text-base-content-secondary mt-1 border-t border-yellow-500/20 pt-1">
+                                 Session Limit: {sessionGenerationCount} / {userDefinedLimit}
+                             </p>
+                         )}
+                     </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center gap-1">
+                         <p className={`text-sm font-semibold flex items-center gap-2 ${dailyGenerationsLeft <= LOW_CREDIT_THRESHOLD ? 'text-red-400 animate-pulse' : 'text-base-content'}`}>
+                          {dailyGenerationsLeft <= LOW_CREDIT_THRESHOLD && <AlertTriangle className="w-4 h-4" />}
+                          Daily Generations Left: {dailyGenerationsLeft} / {DAILY_LIMIT}
+                        </p>
+                        {dailyGenerationsLeft === 0 && (
+                            <p className="text-xs text-red-400">Limit reached. Add your own API key in Settings for infinite generations.</p>
+                        )}
+                    </div>
+                )}
+               
                  {isProcessing && tasks.length > 0 && (
-                    <p className="text-xs text-brand-secondary animate-pulse mt-1">
+                    <p className="text-xs text-brand-secondary animate-pulse mt-2">
                         {tasks.length} task(s) in queue...
                     </p>
                 )}
@@ -490,7 +554,7 @@ const App: React.FC = () => {
 
               <button
                 onClick={handleSubmit}
-                disabled={!isFormValid || isLoading || dailyGenerationsLeft < numberOfImages}
+                disabled={!isFormValid || isLoading || (!customApiKey && dailyGenerationsLeft < numberOfImages) || (customApiKey && userDefinedLimit !== null && sessionGenerationCount + numberOfImages > userDefinedLimit)}
                 className="w-full flex items-center justify-center gap-3 text-lg font-semibold py-4 px-6 rounded-xl text-white transition-all duration-300 ease-out-quad bg-gradient-to-r from-brand-primary to-brand-secondary hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none"
               >
                 {isLoading ? (

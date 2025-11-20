@@ -11,7 +11,7 @@ const ExtraPromptInput: React.FC<ExtraPromptInputProps> = ({ value, onChange }) 
     <div className="w-full">
       <h2 key={headingNumber} className="text-xl font-semibold mb-2 text-base-content flex items-center animate-fade-in-up">
         <span className="bg-brand-primary text-white rounded-full w-6 h-6 flex-shrink-0 inline-flex items-center justify-center text-sm font-bold mr-2">{headingNumber}</span>
-        Add Creative Details
+        Add Creative Details (Optional)
       </h2>
       <textarea
         value={value}
