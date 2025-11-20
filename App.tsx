@@ -533,31 +533,39 @@ const App: React.FC = () => {
         </div>
 
         {/* SEO Content Section */}
-        <div className="max-w-7xl mx-auto mt-12 mb-8 grid grid-cols-1 md:grid-cols-3 gap-8 px-4 text-center md:text-left">
-            <div className="space-y-2">
-                <div className="flex items-center justify-center md:justify-start gap-2 text-brand-primary">
-                    <Zap className="w-5 h-5" />
+        <div className="max-w-7xl mx-auto mt-12 mb-8 grid grid-cols-1 md:grid-cols-3 gap-6 px-4">
+            <div className="p-6 rounded-xl bg-base-100/80 backdrop-blur-md border border-white/5 shadow-lg hover:-translate-y-1 transition-transform duration-300">
+                <div className="flex items-center justify-center md:justify-start gap-3 text-brand-primary mb-3">
+                    <div className="p-2 bg-brand-primary/10 rounded-lg">
+                        <Zap className="w-6 h-6" />
+                    </div>
                     <h3 className="font-bold text-lg text-base-content">Instant AI Generation</h3>
                 </div>
-                <p className="text-sm text-base-content-secondary">
+                <p className="text-sm text-base-content-secondary leading-relaxed text-center md:text-left">
                     Don't settle for boring black and white squares. Our AI analyzes your website's visual identity and generates custom QR codes that perfectly match your brand.
                 </p>
             </div>
-             <div className="space-y-2">
-                <div className="flex items-center justify-center md:justify-start gap-2 text-brand-secondary">
-                    <Sparkles className="w-5 h-5" />
+            
+            <div className="p-6 rounded-xl bg-base-100/80 backdrop-blur-md border border-white/5 shadow-lg hover:-translate-y-1 transition-transform duration-300">
+                <div className="flex items-center justify-center md:justify-start gap-3 text-brand-secondary mb-3">
+                     <div className="p-2 bg-brand-secondary/10 rounded-lg">
+                        <Sparkles className="w-6 h-6" />
+                    </div>
                     <h3 className="font-bold text-lg text-base-content">Artistic & Scannable</h3>
                 </div>
-                <p className="text-sm text-base-content-secondary">
+                <p className="text-sm text-base-content-secondary leading-relaxed text-center md:text-left">
                     Blending art with technology. We use advanced Gemini AI models to ensure your QR codes are stunningly artistic while remaining 100% scannable by any smartphone.
                 </p>
             </div>
-             <div className="space-y-2">
-                <div className="flex items-center justify-center md:justify-start gap-2 text-blue-400">
-                    <Smartphone className="w-5 h-5" />
+            
+            <div className="p-6 rounded-xl bg-base-100/80 backdrop-blur-md border border-white/5 shadow-lg hover:-translate-y-1 transition-transform duration-300">
+                <div className="flex items-center justify-center md:justify-start gap-3 text-blue-400 mb-3">
+                    <div className="p-2 bg-blue-400/10 rounded-lg">
+                        <Smartphone className="w-6 h-6" />
+                    </div>
                     <h3 className="font-bold text-lg text-base-content">Marketing Ready</h3>
                 </div>
-                <p className="text-sm text-base-content-secondary">
+                <p className="text-sm text-base-content-secondary leading-relaxed text-center md:text-left">
                     Perfect for digital marketing, business cards, and flyers. Create a lasting impression with a QR code that tells your brand's story at a glance.
                 </p>
             </div>

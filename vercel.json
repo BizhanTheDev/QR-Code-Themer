@@ -17,11 +17,21 @@
           "value": "text/plain"
         }
       ]
+    },
+    {
+      "source": "/ads.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain"
+        }
+      ]
     }
   ],
   "rewrites": [
-    { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
-    { "source": "/robots.txt", "destination": "/robots.txt" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!sitemap.xml|robots.txt|ads.txt|googlebd749e2aab0be786.html).*)",
+      "destination": "/index.html"
+    }
   ]
 }
