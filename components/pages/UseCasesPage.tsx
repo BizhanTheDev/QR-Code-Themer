@@ -29,7 +29,7 @@ const UseCasesPage: React.FC<{ onNavigate: (page: PageView) => void }> = ({ onNa
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-12 animate-fade-in">
-        <div className="text-center mb-16">
+        <div className="bg-base-100/80 backdrop-blur-xl p-8 rounded-3xl shadow-lg border border-base-300 mb-16 text-center transform transition-all duration-500 ease-out-quad hover:scale-[1.01] hover:shadow-2xl">
             <h1 className="text-4xl font-bold text-base-content mb-4">Use Cases</h1>
             <p className="text-xl text-base-content-secondary max-w-2xl mx-auto">
                 Discover how styled QR codes are transforming industries by turning utility into engagement.
@@ -38,8 +38,8 @@ const UseCasesPage: React.FC<{ onNavigate: (page: PageView) => void }> = ({ onNa
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
             {cases.map((c, i) => (
-                <div key={i} className="flex gap-6 p-8 bg-base-200 rounded-2xl border border-base-300 hover:border-brand-primary transition-colors">
-                    <div className="flex-shrink-0 p-4 bg-base-100 rounded-xl h-fit">
+                <div key={i} className="flex gap-6 p-8 bg-base-200 rounded-3xl border border-base-300 transition-all duration-300 ease-out-quad hover:border-brand-primary hover:shadow-xl hover:bg-base-200/80 hover:-translate-y-1 hover:scale-[1.01]">
+                    <div className="flex-shrink-0 p-4 bg-base-100 rounded-2xl h-fit shadow-inner">
                         {c.icon}
                     </div>
                     <div>
@@ -50,12 +50,12 @@ const UseCasesPage: React.FC<{ onNavigate: (page: PageView) => void }> = ({ onNa
             ))}
         </div>
 
-        <div className="bg-gradient-to-r from-brand-primary/20 to-brand-secondary/20 rounded-3xl p-12 text-center border border-brand-primary/30">
+        <div className="bg-gradient-to-r from-brand-primary/20 to-brand-secondary/20 rounded-3xl p-12 text-center border border-brand-primary/30 transition-all duration-500 ease-out-quad hover:shadow-2xl hover:scale-[1.01]">
             <h2 className="text-3xl font-bold text-base-content mb-4">Ready to elevate your brand?</h2>
             <p className="text-base-content-secondary mb-8 max-w-lg mx-auto">
                 Join thousands of creators who are making the internet a more beautiful place, one scan at a time.
             </p>
-            <button onClick={() => onNavigate('home')} className="bg-brand-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-brand-secondary transition-all shadow-lg hover:shadow-brand-primary/50">
+            <button onClick={() => onNavigate('home')} className="bg-brand-primary text-white px-8 py-3 rounded-2xl font-bold hover:bg-brand-secondary transition-all transform hover:scale-105 hover:shadow-lg shadow-brand-primary/20">
                 Start Generating for Free
             </button>
         </div>

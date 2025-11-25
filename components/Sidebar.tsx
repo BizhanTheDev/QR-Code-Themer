@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, RefreshCw, SlidersHorizontal, ClipboardList, Info, ExternalLink, Palette, KeyRound, History, Trash2, Download, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { GenerationConfig, BackgroundStyle, GradientConfig, PatternConfig, HistoryItem, QRShape } from '../types';
@@ -131,7 +132,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
       >
         <div className="flex justify-between items-center p-4 border-b border-base-300">
           <h2 id="sidebar-title" className="text-2xl font-bold">Settings</h2>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-base-300" aria-label="Close settings">
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-base-300 transition-transform hover:rotate-90" aria-label="Close settings">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -162,7 +163,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         </button>
                     )}
                 </div>
-                <div className="flex items-start gap-2 p-3 text-xs text-yellow-200 bg-yellow-600/20 rounded-lg border border-yellow-500/30 mb-4">
+                <div className="flex items-start gap-2 p-3 text-xs text-yellow-200 bg-yellow-600/20 rounded-lg border border-yellow-500/30 mb-4 shadow-sm">
                     <AlertTriangle className="w-6 h-6 flex-shrink-0 text-yellow-400" />
                     <span>
                         History is stored in your browser's local storage and may be cleared automatically. Download any QR codes you want to keep.
@@ -176,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 ) : (
                     <div className="space-y-4">
                         {history.map(item => (
-                            <div key={item.id} className="bg-base-200 p-3 rounded-lg border border-base-300">
+                            <div key={item.id} className="bg-base-200 p-3 rounded-2xl border border-base-300 transition-all duration-300 ease-out-quad hover:shadow-lg hover:border-brand-primary/30 hover:bg-base-200/80 hover:scale-[1.01]">
                                 <div className="flex items-start gap-4">
                                     <div className="flex-grow overflow-hidden">
                                         <p className="text-sm font-semibold text-base-content truncate" title={item.url}>{item.url}</p>
@@ -185,7 +186,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                                     </div>
                                     <button 
                                       onClick={() => handleDownloadAll(item)}
-                                      className="flex-shrink-0 flex items-center gap-2 text-sm font-medium text-brand-primary hover:text-white bg-brand-primary/10 hover:bg-brand-primary/80 px-3 py-1.5 rounded-lg transition-colors"
+                                      className="flex-shrink-0 flex items-center gap-2 text-sm font-medium text-brand-primary hover:text-white bg-brand-primary/10 hover:bg-brand-primary/80 px-3 py-1.5 rounded-lg transition-colors hover:shadow-md"
                                     >
                                         <Download className="w-4 h-4" />
                                         All
@@ -209,7 +210,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                                         <img
                                           src={`data:image/png;base64,${img}`}
                                           alt={`History thumbnail ${index + 1}`}
-                                          className="w-full aspect-square rounded-md object-contain bg-white cursor-pointer transition-transform duration-200 group-hover:scale-105"
+                                          className="w-full aspect-square rounded-xl object-contain bg-white cursor-pointer transition-transform duration-300 ease-out-quad group-hover:scale-105 shadow-sm group-hover:shadow-md"
                                           onClick={() => onImageClick(img)}
                                         />
                                         <button
@@ -246,7 +247,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                   </div>
                   <div className="border-t border-base-300 !mt-6 pt-6">
                       <h3 className="text-lg font-semibold text-base-content mb-3">Model Parameters</h3>
-                      <div>
+                      <div className="bg-base-200 p-4 rounded-2xl border border-base-300 transition-all duration-300 hover:shadow-md hover:border-base-content/20">
                           <label htmlFor="seed" className="block text-sm font-medium text-base-content-secondary mb-1">Seed</label>
                           <div className="flex items-center gap-2">
                             <input
@@ -255,7 +256,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                               value={config.seed ?? ''}
                               onChange={(e) => setConfig({ ...config, seed: e.target.value ? parseInt(e.target.value, 10) : undefined })}
                               placeholder="Random"
-                              className="w-full px-3 py-2 text-base bg-base-200 border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
+                              className="w-full px-3 py-2 text-base bg-base-100 border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
                             />
                             <button onClick={handleRandomizeSeed} title="Randomize Seed" className="p-2 bg-base-300 rounded-lg hover:bg-brand-primary hover:text-white transition-all duration-200 transform hover:scale-110 hover:rotate-12">
                               <RefreshCw className="w-5 h-5" />
@@ -264,7 +265,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                           <p className="text-xs text-base-content-secondary mt-1">Controls randomness. Same seed + prompt = same image.</p>
                       </div>
 
-                      <div className="mt-4">
+                      <div className="mt-4 bg-base-200 p-4 rounded-2xl border border-base-300 transition-all duration-300 hover:shadow-md hover:border-base-content/20">
                           <label htmlFor="topP" className="block text-sm font-medium text-base-content-secondary mb-1">Style Focus (Top-P): {config.topP}</label>
                           <input
                             type="range"
@@ -279,7 +280,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                           <p className="text-xs text-base-content-secondary mt-1">Alternative to creativity sampling.</p>
                       </div>
 
-                      <div className="mt-4">
+                      <div className="mt-4 bg-base-200 p-4 rounded-2xl border border-base-300 transition-all duration-300 hover:shadow-md hover:border-base-content/20">
                           <label htmlFor="topK" className="block text-sm font-medium text-base-content-secondary mb-1">Token Variety (Top-K): {config.topK}</label>
                           <input
                             type="range"
@@ -299,7 +300,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
           )}
           {activeTab === 'api' && (
              <div className="p-6 space-y-6">
-              <div>
+              <div className="bg-base-200 p-5 rounded-2xl border border-base-300 transition-all duration-300 hover:shadow-lg hover:border-base-content/20">
                 <h3 className="text-lg font-semibold text-base-content flex items-center gap-2 mb-2">
                   <KeyRound className="h-5 w-5" />
                   Custom API Key
@@ -313,7 +314,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     placeholder="Enter your Gemini API key"
                     value={customApiKey}
                     onChange={(e) => setCustomApiKey(e.target.value)}
-                    className="w-full pl-3 pr-10 py-2 text-base bg-base-200 border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
+                    className="w-full pl-3 pr-10 py-2 text-base bg-base-100 border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
                   />
                   {customApiKey && (
                     <button 
@@ -328,13 +329,13 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 
                 {customApiKey ? (
                   <div className="mt-3">
-                      <div className="flex items-start gap-2 p-3 text-xs text-orange-200 bg-orange-600/20 rounded-lg border border-orange-500/30 mb-3 animate-fade-in">
+                      <div className="flex items-start gap-2 p-3 text-xs text-orange-200 bg-orange-600/20 rounded-lg border border-orange-500/30 mb-3 animate-fade-in shadow-sm">
                           <ShieldAlert className="w-5 h-5 flex-shrink-0 text-orange-400" />
                           <span>
                               <strong>Warning:</strong> You are using your own API key. Generations will count against <strong>YOUR</strong> personal billing quotas with Google.
                           </span>
                       </div>
-                      <p className="text-xs text-green-400 mt-1">Custom API key is active. Unlimited generations enabled.</p>
+                      <p className="text-xs text-green-400 mt-1 font-semibold">Custom API key is active. Unlimited generations enabled.</p>
                   </div>
                 ) : (
                   <p className="text-xs text-base-content-secondary mt-1">Using the site's default API key.</p>
@@ -342,7 +343,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
               </div>
               
               {customApiKey && (
-                  <div className="border-t border-base-300 !mt-6 pt-6 animate-fade-in">
+                  <div className="bg-base-200 p-5 rounded-2xl border border-base-300 transition-all duration-300 hover:shadow-lg hover:border-base-content/20 animate-fade-in">
                       <h3 className="text-lg font-semibold text-base-content flex items-center gap-2 mb-2">
                           <Info className="h-5 w-5" />
                           Usage Safety Limit
@@ -359,18 +360,18 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                               value={userDefinedLimit ?? ''}
                               onChange={(e) => setUserDefinedLimit(e.target.value ? parseInt(e.target.value) : null)}
                               placeholder="e.g., 50"
-                              className="w-full px-3 py-2 text-base bg-base-200 border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
+                              className="w-full px-3 py-2 text-base bg-base-100 border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow"
                            />
                       </div>
                   </div>
               )}
 
-               <div className="border-t border-base-300 !mt-6 pt-6">
+               <div className="bg-base-200 p-5 rounded-2xl border border-base-300 transition-all duration-300 hover:shadow-lg hover:border-base-content/20">
                 <h3 className="text-lg font-semibold text-base-content flex items-center gap-2 mb-2">
                   <Info className="h-5 w-5" />
                   API Usage & Limits
                 </h3>
-                <div className="bg-base-200 p-3 rounded-lg border border-base-300 mb-4">
+                <div className="bg-base-100 p-3 rounded-lg border border-base-300 mb-4 shadow-inner">
                   <h4 className="font-semibold text-sm text-base-content">Daily Generation Limit</h4>
                   <p className="text-xs text-base-content-secondary mt-1">
                     To ensure fair use, the site's API key has a daily limit based on the number of images generated. This is tracked in your browser and resets automatically.
@@ -383,7 +384,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                   href="https://ai.google.dev/gemini-api/docs/models/gemini#rate-limits"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full mt-4 flex items-center justify-center gap-2 font-semibold py-2 px-4 rounded-lg text-base-content transition-all duration-200 ease-in-out bg-base-300 hover:bg-brand-secondary hover:text-white transform hover:scale-105"
+                  className="w-full mt-4 flex items-center justify-center gap-2 font-semibold py-2 px-4 rounded-lg text-base-content transition-all duration-200 ease-in-out bg-base-300 hover:bg-brand-secondary hover:text-white transform hover:scale-105 shadow-sm hover:shadow-md"
                 >
                   <ExternalLink className="h-4 w-4" />
                   View Gemini API Limits
@@ -400,7 +401,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                             These are the initial settings loaded when the app starts. To change these values permanently, edit the file at: <br />
                             <code className="text-xs bg-base-200 p-1 rounded-md inline-block mt-1">config/defaults.ts</code>
                         </p>
-                        <div className="mt-2 space-y-4 rounded-lg bg-base-200 p-4 border border-base-300">
+                        <div className="mt-2 space-y-4 rounded-2xl bg-base-200 p-4 border border-base-300 transition-all duration-300 hover:shadow-lg hover:border-base-content/20">
                             <DefaultValue label="Seed" value={defaultGenerationConfig.seed ?? 'Random'} />
                             <DefaultValue label="Creativity (Temperature)" value={defaultGenerationConfig.temperature} />
                             <DefaultValue label="Style Focus (Top-P)" value={defaultGenerationConfig.topP} />
@@ -411,10 +412,9 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     <button 
                         onClick={() => {
                           onResetToDefaults();
-                          // Optional: switch back to the advanced tab to see the changes
                           setActiveTab('advanced');
                         }}
-                        className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-lg text-base-content transition-all duration-200 ease-in-out bg-base-300 hover:bg-brand-primary hover:text-white transform hover:scale-105"
+                        className="w-full flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-xl text-base-content transition-all duration-200 ease-in-out bg-base-300 hover:bg-brand-primary hover:text-white transform hover:scale-105 shadow-md hover:shadow-brand-primary/30"
                     >
                         <RefreshCw className="h-4 w-4" />
                         Reset Current Settings to Defaults
@@ -425,12 +425,12 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
           {activeTab === 'theme' && (
             <div className="p-6">
               <div className="space-y-6">
-                  <div>
+                  <div className="p-1">
                     <BackgroundSelector {...props} />
                   </div>
                    <div className="border-t border-base-300 pt-6">
                         <h3 className="text-lg font-semibold text-base-content mb-3">UI Effect</h3>
-                        <div className="flex items-center justify-between p-4 bg-base-200 rounded-lg border border-base-300">
+                        <div className="flex items-center justify-between p-4 bg-base-200 rounded-2xl border border-base-300 transition-all duration-300 hover:shadow-lg hover:border-base-content/20">
                           <div className="flex-grow">
                             <label htmlFor="isGlass" className="font-medium text-base-content">Liquid Glass Effect</label>
                             <p className="text-xs text-base-content-secondary mt-1">Apply a semi-transparent, blurred effect to the UI.</p>
