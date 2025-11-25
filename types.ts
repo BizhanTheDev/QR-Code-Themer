@@ -1,3 +1,4 @@
+
 export enum AppState {
   IDLE = 'idle',
   GENERATING_BASE_QR = 'generating_base_qr',
@@ -15,6 +16,8 @@ export type QRSource = 'upload' | 'generate';
 export type QRShape = 'squares' | 'circles' | 'diamonds' | 'fluid';
 
 export type ValidationStatus = 'pending' | 'valid' | 'invalid';
+
+export type PageView = 'home' | 'about' | 'blog' | 'use-cases' | 'privacy' | 'terms';
 
 export interface ValidationResult {
   status: ValidationStatus;

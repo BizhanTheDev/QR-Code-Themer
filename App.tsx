@@ -1,8 +1,10 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { generateThemedQRCode, getWebsiteTheme } from './services/geminiService';
 import { generateQRCodeFromURL, validateQRCode } from './utils/qrUtils';
-import { AppState, MimeType, GenerationConfig, ValidationResult, BackgroundStyle, GradientConfig, PatternConfig, HistoryItem, QRShape } from './types';
+import { AppState, MimeType, GenerationConfig, ValidationResult, BackgroundStyle, GradientConfig, PatternConfig, HistoryItem, QRShape, PageView } from './types';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import URLInput from './components/URLInput';
 import QRCodeUploader from './components/QRCodeUploader';
 import GeneratedQRCode from './components/GeneratedQRCode';
@@ -12,7 +14,12 @@ import Sidebar from './components/Sidebar';
 import AdBanner from './components/AdBanner';
 import Toast from './components/Toast';
 import Lightbox from './components/Lightbox';
-import { Loader2, Wand2, Zap, Sparkles, Smartphone, AlertTriangle, Infinity as InfinityIcon, ShieldAlert } from 'lucide-react';
+import Gallery from './components/Gallery';
+import BlogPage from './components/pages/BlogPage';
+import AboutPage from './components/pages/AboutPage';
+import UseCasesPage from './components/pages/UseCasesPage';
+import { PrivacyPage, TermsPage } from './components/pages/LegalPages';
+import { Loader2, Wand2, Zap, Sparkles, Smartphone, AlertTriangle, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { defaultGenerationConfig, defaultGradientConfig, defaultPatternConfig } from './config/defaults';
 import { hexToRgb } from './utils/colorUtils';
 import { setCookie, getCookie } from './utils/cookieUtils';
@@ -26,6 +33,7 @@ const COOKIE_NAME = 'qrThemerDailyLimit';
 type ToastMessage = { id: number; message: string; type: 'warning' | 'info' } | null;
 
 const App: React.FC = () => {
+  const [currentPage, setCurrentPage] = useState<PageView>('home');
   const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null);
   const [websiteUrl, setWebsiteUrl] = useState<string>('');
   const [numberOfImages, setNumberOfImages] = useState<number>(1);
@@ -76,6 +84,31 @@ const App: React.FC = () => {
   
   // State to track if it's the first generation vs a regeneration for animation purposes
   const [isInitialGeneration, setIsInitialGeneration] = useState(true);
+
+  // Handle URL hash changes for routing
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      if (hash && ['home', 'about', 'blog', 'use-cases', 'privacy', 'terms'].includes(hash)) {
+        setCurrentPage(hash as PageView);
+      } else {
+        setCurrentPage('home');
+      }
+    };
+
+    // Initial check
+    handleHashChange();
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Update hash when page changes via state
+  const navigateTo = (page: PageView) => {
+    setCurrentPage(page);
+    window.location.hash = page === 'home' ? '' : page;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Effect to load history and daily limit cookie on initial load
   useEffect(() => {
@@ -396,81 +429,240 @@ const App: React.FC = () => {
             setDailyGenerationsLeft(newCount);
             setCookie(COOKIE_NAME, JSON.stringify({ count: newCount, lastReset: today }), 1);
         }
-
+        
+        // Temporarily set specific card to loading is handled by isProcessing in component
+        // But we need to make sure we don't wipe the whole state.
+        
         const { data: qrCodeImageBase64, mimeType } = await getBaseQRCode();
         
-        setValidationResults(prev => {
-          const newResults = [...prev];
-          newResults[indexToRegenerate] = { status: 'pending', data: null };
-          return newResults;
-        });
-        
+        setAppState(AppState.LOADING_THEME);
+        // Skip theme generation if we have it? 
+        // For simplicity, we re-fetch briefly or we could cache the prompt. 
+        // Let's re-fetch to allow for randomization if the user changed seeds, but keeping the URL theme.
         const themeDescription = await getWebsiteTheme(websiteUrl, customApiKey || null);
-        const referenceImage = await getReferenceImage();
         
-        // Note: For regeneration, we only request 1 image from the API
-        const newImageBase64Array = await generateThemedQRCode(
+        const referenceImage = await getReferenceImage();
+
+        setAppState(AppState.LOADING_QR_CODE);
+        const newImages = await generateThemedQRCode(
           themeDescription, 
           qrCodeImageBase64, 
           mimeType, 
-          1,
-          {...generationConfig, seed: Math.floor(Math.random() * 1000000), temperature: creativity },
+          1, // Regenerate only 1
+          { ...generationConfig, temperature: creativity },
           extraPrompt,
           readability,
           styleStrength,
           customApiKey || null,
           referenceImage
         );
+        
+        // Update the specific index
+        if (generatedImages) {
+            const updatedImages = [...generatedImages];
+            updatedImages[indexToRegenerate] = newImages[0];
+            setGeneratedImages(updatedImages);
+            
+            setAppState(AppState.VALIDATING);
+            setValidationResults(prev => {
+                const newRes = [...prev];
+                newRes[indexToRegenerate] = { status: 'pending', data: null };
+                return newRes;
+            });
 
-        const newImageBase64 = newImageBase64Array[0];
-        const validationResult = await validateQRCode(newImageBase64);
-
-        setGeneratedImages(prev => {
-          if (!prev) return null;
-          const newImages = [...prev];
-          newImages[indexToRegenerate] = newImageBase64;
-          return newImages;
-        });
-        setValidationResults(prev => {
-          const newResults = [...prev];
-          newResults[indexToRegenerate] = validationResult;
-          return newResults;
-        });
+            const result = await validateQRCode(newImages[0]);
+            setValidationResults(prev => {
+                const newRes = [...prev];
+                newRes[indexToRegenerate] = result;
+                return newRes;
+            });
+            
+            // Update the history item
+            setHistory(prev => {
+                const newHist = [...prev];
+                // Assume the most recent history item corresponds to the current session if URL matches
+                if (newHist.length > 0 && newHist[0].url === websiteUrl) {
+                    newHist[0].images = updatedImages;
+                    saveGenerationToHistory(newHist[0]); // This is a bit simplistic, usually history is immutable, but for "regenerate" it makes sense to update current view
+                }
+                return newHist;
+            });
+            
+            setAppState(AppState.SUCCESS);
+        }
 
       } catch (error) {
-          console.error(error);
-          setErrorMessage(`Regeneration failed for image ${indexToRegenerate + 1}.`);
+        console.error(error);
+        const errMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        showToast(`Regeneration failed: ${errMessage}`, 'warning');
+        setAppState(AppState.SUCCESS); // Revert to success to show existing images
       }
     });
-  }, [websiteUrl, generationConfig, extraPrompt, customApiKey, getBaseQRCode, getReferenceImage, readability, styleStrength, creativity, dailyGenerationsLeft, addTask, userDefinedLimit, sessionGenerationCount]);
-
-  const isValidUrl = (url: string) => {
-    try {
-      new URL(url);
-      return true;
-    } catch (_) {
-      return url.length === 0;
-    }
-  };
-
-  const isFormValid = websiteUrl.length > 0 && isValidUrl(websiteUrl);
-  const isLoading = isProcessing || [
-    AppState.GENERATING_BASE_QR,
-    AppState.LOADING_THEME,
-    AppState.LOADING_QR_CODE,
-    AppState.VALIDATING
-  ].includes(appState);
+  }, [websiteUrl, generatedImages, generationConfig, extraPrompt, customApiKey, getBaseQRCode, getReferenceImage, dailyGenerationsLeft, readability, styleStrength, creativity, addTask, userDefinedLimit, sessionGenerationCount]);
 
   return (
-    <div className="min-h-screen bg-transparent text-base-content font-sans">
-      <Toast toast={toast} onDismiss={() => setToast(null)} />
-      {lightboxImage && <Lightbox imageSrc={lightboxImage} onClose={() => setLightboxImage(null)} />}
-      <Header onSettingsClick={() => setIsSidebarOpen(true)} />
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
-        config={generationConfig} 
-        setConfig={setGenerationConfig} 
+    <div className={`min-h-screen flex flex-col font-sans text-base-content selection:bg-brand-primary selection:text-white ${isGlassTheme ? 'glass-theme' : ''}`}>
+      {isGlassTheme && (
+        <div className="fixed inset-0 pointer-events-none z-[-5] bg-base-200/30 backdrop-blur-md"></div>
+      )}
+      
+      <Header 
+        onSettingsClick={() => setIsSidebarOpen(true)} 
+        currentPage={currentPage}
+        onNavigate={navigateTo}
+      />
+      
+      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {currentPage === 'home' && (
+          <div className="animate-fade-in">
+            {/* Top Generator Section */}
+            <div className="flex flex-col lg:flex-row gap-8 mb-16">
+              {/* Left Column: Controls */}
+              <div className="w-full lg:w-1/3 flex flex-col gap-6">
+                <div className={`bg-base-100 p-6 rounded-3xl shadow-xl border border-base-300 space-y-8 transition-transform hover:shadow-2xl hover:scale-[1.01] duration-500 ${isGlassTheme ? 'bg-base-100/90 backdrop-blur-xl border-white/20' : ''}`}>
+                  <URLInput value={websiteUrl} onChange={handleUrlChange} />
+                  <QRCodeUploader onFileChange={handleReferenceImageChange} />
+                  <ImageCountSelector value={numberOfImages} onChange={handleImageCountChange} />
+                  <ExtraPromptInput value={extraPrompt} onChange={setExtraPrompt} />
+                  
+                  <div className="pt-4">
+                      <button
+                      onClick={handleSubmit}
+                      disabled={isProcessing || !websiteUrl}
+                      className="group relative w-full py-4 px-6 bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-brand-primary/50 transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:translate-y-0 active:scale-100 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+                      >
+                      <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                      <span className="relative flex items-center justify-center gap-2">
+                          {isProcessing ? (
+                          <>
+                              <Loader2 className="animate-spin h-6 w-6" />
+                              Processing...
+                          </>
+                          ) : (
+                          <>
+                              <Wand2 className="h-6 w-6" />
+                              Generate QR Code
+                          </>
+                          )}
+                      </span>
+                      </button>
+                      
+                      {!customApiKey && (
+                        <div className="mt-3 flex items-center justify-center gap-2 text-xs text-base-content-secondary">
+                            <div className={`h-2 w-2 rounded-full ${dailyGenerationsLeft > LOW_CREDIT_THRESHOLD ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                            <span>
+                                {dailyGenerationsLeft > 0 
+                                ? `${dailyGenerationsLeft} free daily generations remaining` 
+                                : 'Daily limit reached. Add API Key in Settings.'}
+                            </span>
+                        </div>
+                      )}
+                      {customApiKey && (
+                         <div className="mt-3 flex items-center justify-center gap-2 text-xs text-green-400">
+                             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                             <span>Custom API Key Active (Unlimited)</span>
+                         </div>
+                      )}
+                  </div>
+                </div>
+                
+                {/* Mobile Ad Placeholder */}
+                <div className="block lg:hidden">
+                    <AdBanner />
+                </div>
+              </div>
+
+              {/* Right Column: Preview/Results */}
+              <div className="w-full lg:w-2/3 flex flex-col gap-6 h-full min-h-[500px]">
+                <div className={`flex-grow bg-base-100 rounded-3xl shadow-xl border border-base-300 p-4 lg:p-8 flex flex-col relative overflow-hidden transition-all duration-500 ${isGlassTheme ? 'bg-base-100/90 backdrop-blur-xl border-white/20' : ''}`}>
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary to-brand-secondary"></div>
+                    <GeneratedQRCode
+                        appState={appState}
+                        generatedImages={generatedImages}
+                        validationResults={validationResults}
+                        referenceImageFile={referenceImageFile}
+                        websiteUrl={websiteUrl}
+                        extraPrompt={extraPrompt}
+                        onRegenerate={handleRegenerate}
+                        isProcessing={isProcessing}
+                        progress={progress}
+                        isInitialGeneration={isInitialGeneration}
+                        onImageClick={setLightboxImage}
+                    />
+                    {errorMessage && (
+                    <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm text-center animate-fade-in">
+                        {errorMessage}
+                    </div>
+                    )}
+                </div>
+                
+                 {/* Desktop Ad Placeholder */}
+                 <div className="hidden lg:block">
+                    <AdBanner />
+                </div>
+              </div>
+            </div>
+
+            {/* Gallery Section */}
+            <Gallery />
+
+            {/* SEO Content Section */}
+            <section className="mb-16">
+                <div className="text-center mb-10">
+                    <h2 className="text-4xl font-bold text-base-content mb-3 tracking-tight">Why Use This Tool?</h2>
+                    <p className="text-lg text-base-content-secondary max-w-2xl mx-auto">
+                        Stop using boring black-and-white squares. Create QR codes that actually fit your brand's vibe.
+                    </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="bg-base-100/80 backdrop-blur-xl p-8 rounded-3xl shadow-lg border border-base-300 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group">
+                        <div className="w-14 h-14 bg-brand-primary/20 text-brand-primary rounded-2xl flex items-center justify-center mb-6 group-hover:bg-brand-primary group-hover:text-white transition-colors group-hover:rotate-6">
+                            <Sparkles className="w-7 h-7" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-base-content mb-3">Designed by AI</h3>
+                        <p className="text-base-content-secondary text-lg leading-relaxed">
+                            Our advanced AI engine analyzes your website's colors and vibe, then designs a QR code that feels like it belongs there.
+                        </p>
+                    </div>
+                    <div className="bg-base-100/80 backdrop-blur-xl p-8 rounded-3xl shadow-lg border border-base-300 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group">
+                        <div className="w-14 h-14 bg-brand-secondary/20 text-brand-secondary rounded-2xl flex items-center justify-center mb-6 group-hover:bg-brand-secondary group-hover:text-white transition-colors group-hover:-rotate-6">
+                            <CheckCircle2 className="w-7 h-7" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-base-content mb-3">They Actually Work</h3>
+                        <p className="text-base-content-secondary text-lg leading-relaxed">
+                            Built with robust error-correction algorithms, we ensure your customers can actually use the code you print, blending art with utility.
+                        </p>
+                    </div>
+                    <div className="bg-base-100/80 backdrop-blur-xl p-8 rounded-3xl shadow-lg border border-base-300 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group">
+                         <div className="w-14 h-14 bg-pink-500/20 text-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-pink-500 group-hover:text-white transition-colors group-hover:rotate-6">
+                            <Smartphone className="w-7 h-7" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-base-content mb-3">Ready for Print</h3>
+                        <p className="text-base-content-secondary text-lg leading-relaxed">
+                            Get high-quality images ready for your flyers, business cards, or menus. No watermarks, just clean design.
+                        </p>
+                    </div>
+                </div>
+            </section>
+          </div>
+        )}
+
+        {currentPage === 'blog' && <BlogPage onNavigate={navigateTo} />}
+        {currentPage === 'about' && <AboutPage onNavigate={navigateTo} />}
+        {currentPage === 'use-cases' && <UseCasesPage onNavigate={navigateTo} />}
+        {currentPage === 'privacy' && <PrivacyPage />}
+        {currentPage === 'terms' && <TermsPage />}
+
+      </main>
+
+      <Footer onNavigate={navigateTo} />
+
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        config={generationConfig}
+        setConfig={setGenerationConfig}
         onResetToDefaults={handleResetToDefaults}
         backgroundStyle={backgroundStyle}
         setBackgroundStyle={setBackgroundStyle}
@@ -498,148 +690,12 @@ const App: React.FC = () => {
         userDefinedLimit={userDefinedLimit}
         setUserDefinedLimit={setUserDefinedLimit}
       />
-
-      <main className="container mx-auto p-4 md:p-8">
-        <div className={`max-w-7xl mx-auto rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 animate-fade-in-up transition-all duration-300 ${isGlassTheme ? 'bg-base-100/50 backdrop-blur-lg border border-white/10' : 'bg-base-100'}`}>
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
-            {/* Input Column */}
-            <div className="lg:col-span-2 flex flex-col space-y-4 lg:space-y-6">
-              
-              <URLInput 
-                value={websiteUrl} 
-                onChange={handleUrlChange}
-              />
-
-              <QRCodeUploader onFileChange={handleReferenceImageChange} />
-
-              <ImageCountSelector value={numberOfImages} onChange={handleImageCountChange} />
-
-              <ExtraPromptInput value={extraPrompt} onChange={setExtraPrompt} />
-              
-              {/* Status / Credits Area */}
-              <div className="text-center -mt-2 px-2 transition-all duration-300">
-                {customApiKey ? (
-                     <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2">
-                        <div className="flex items-center justify-center gap-2 text-yellow-500 font-bold text-sm">
-                            <ShieldAlert className="w-4 h-4" />
-                            USING CUSTOM API KEY
-                        </div>
-                        <p className="text-xs text-yellow-500/80 mt-1">
-                            Generations are using your personal API quota.
-                        </p>
-                         {userDefinedLimit !== null && (
-                             <p className="text-xs font-mono text-base-content-secondary mt-1 border-t border-yellow-500/20 pt-1">
-                                 Session Limit: {sessionGenerationCount} / {userDefinedLimit}
-                             </p>
-                         )}
-                     </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center gap-1">
-                         <p className={`text-sm font-semibold flex items-center gap-2 ${dailyGenerationsLeft <= LOW_CREDIT_THRESHOLD ? 'text-red-400 animate-pulse' : 'text-base-content'}`}>
-                          {dailyGenerationsLeft <= LOW_CREDIT_THRESHOLD && <AlertTriangle className="w-4 h-4" />}
-                          Daily Generations Left: {dailyGenerationsLeft} / {DAILY_LIMIT}
-                        </p>
-                        {dailyGenerationsLeft === 0 && (
-                            <p className="text-xs text-red-400">Limit reached. Add your own API key in Settings for infinite generations.</p>
-                        )}
-                    </div>
-                )}
-               
-                 {isProcessing && tasks.length > 0 && (
-                    <p className="text-xs text-brand-secondary animate-pulse mt-2">
-                        {tasks.length} task(s) in queue...
-                    </p>
-                )}
-              </div>
-
-              <button
-                onClick={handleSubmit}
-                disabled={!isFormValid || isLoading || (!customApiKey && dailyGenerationsLeft < numberOfImages) || (customApiKey && userDefinedLimit !== null && sessionGenerationCount + numberOfImages > userDefinedLimit)}
-                className="w-full flex items-center justify-center gap-3 text-lg font-semibold py-4 px-6 rounded-xl text-white transition-all duration-300 ease-out-quad bg-gradient-to-r from-brand-primary to-brand-secondary hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="animate-spin h-6 w-6" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="h-6 w-6" />
-                    <span>Generate Themed QR Code</span>
-                  </>
-                  
-                )}
-              </button>
-              <p className="text-xs text-base-content-secondary text-center -mt-3 px-2">
-                By generating, your prompt, URL, and images will be sent to the Gemini API for processing.
-              </p>
-              {errorMessage && <p className="text-red-400 text-center font-medium animate-fade-in mt-2">{errorMessage}</p>}
-            </div>
-
-            {/* Output Column */}
-            <div className="lg:col-span-3 flex flex-col items-center justify-start min-h-[300px] sm:min-h-[400px]">
-              <GeneratedQRCode
-                appState={appState}
-                generatedImages={generatedImages}
-                validationResults={validationResults}
-                referenceImageFile={referenceImageFile}
-                websiteUrl={websiteUrl}
-                extraPrompt={extraPrompt}
-                onRegenerate={handleRegenerate}
-                isProcessing={isProcessing}
-                progress={progress}
-                isInitialGeneration={isInitialGeneration}
-                onImageClick={setLightboxImage}
-              />
-              <AdBanner />
-            </div>
-          </div>
-        </div>
-
-        {/* SEO Content Section */}
-        <div className="max-w-7xl mx-auto mt-12 mb-8 grid grid-cols-1 md:grid-cols-3 gap-6 px-4">
-            <div className="p-6 rounded-xl bg-base-100/80 backdrop-blur-md border border-white/5 shadow-lg hover:-translate-y-1 transition-transform duration-300">
-                <div className="flex items-center justify-center md:justify-start gap-3 text-brand-primary mb-3">
-                    <div className="p-2 bg-brand-primary/10 rounded-lg">
-                        <Zap className="w-6 h-6" />
-                    </div>
-                    <h3 className="font-bold text-lg text-base-content">Instant AI Generation</h3>
-                </div>
-                <p className="text-sm text-base-content-secondary leading-relaxed text-center md:text-left">
-                    Don't settle for boring black and white squares. Our AI analyzes your website's visual identity and generates custom QR codes that perfectly match your brand.
-                </p>
-            </div>
-            
-            <div className="p-6 rounded-xl bg-base-100/80 backdrop-blur-md border border-white/5 shadow-lg hover:-translate-y-1 transition-transform duration-300">
-                <div className="flex items-center justify-center md:justify-start gap-3 text-brand-secondary mb-3">
-                     <div className="p-2 bg-brand-secondary/10 rounded-lg">
-                        <Sparkles className="w-6 h-6" />
-                    </div>
-                    <h3 className="font-bold text-lg text-base-content">Artistic & Scannable</h3>
-                </div>
-                <p className="text-sm text-base-content-secondary leading-relaxed text-center md:text-left">
-                    Blending art with technology. We use advanced Gemini AI models to ensure your QR codes are stunningly artistic while remaining 100% scannable by any smartphone.
-                </p>
-            </div>
-            
-            <div className="p-6 rounded-xl bg-base-100/80 backdrop-blur-md border border-white/5 shadow-lg hover:-translate-y-1 transition-transform duration-300">
-                <div className="flex items-center justify-center md:justify-start gap-3 text-blue-400 mb-3">
-                    <div className="p-2 bg-blue-400/10 rounded-lg">
-                        <Smartphone className="w-6 h-6" />
-                    </div>
-                    <h3 className="font-bold text-lg text-base-content">Marketing Ready</h3>
-                </div>
-                <p className="text-sm text-base-content-secondary leading-relaxed text-center md:text-left">
-                    Perfect for digital marketing, business cards, and flyers. Create a lasting impression with a QR code that tells your brand's story at a glance.
-                </p>
-            </div>
-        </div>
-
-        <footer className="text-center py-8 text-base-content-secondary border-t border-base-300/50 mt-8">
-          <p className="font-medium">QR Code Themer &copy; {new Date().getFullYear()}</p>
-          <p className="text-xs mt-2 opacity-70">Powered by Google Gemini AI</p>
-        </footer>
-      </main>
+      
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
+      
+      {lightboxImage && (
+        <Lightbox imageSrc={lightboxImage} onClose={() => setLightboxImage(null)} />
+      )}
     </div>
   );
 };

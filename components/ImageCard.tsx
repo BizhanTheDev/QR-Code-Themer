@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { ValidationResult } from '../types';
 import { CheckCircle, XCircle, RefreshCw, Download, ScanLine, AlertTriangle } from 'lucide-react';
@@ -66,28 +67,28 @@ const ImageCard: React.FC<ImageCardProps> = ({
     switch (validationResult.status) {
       case 'pending':
         return (
-          <div className="flex items-center gap-1 text-xs text-yellow-400">
-            <ScanLine className="w-4 h-4 animate-pulse"/>
+          <div className="flex items-center gap-1.5 text-xs text-yellow-400 font-medium bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-sm">
+            <ScanLine className="w-3.5 h-3.5 animate-pulse"/>
             <span>Validating...</span>
           </div>
         );
       case 'valid':
         const isMatch = validationResult.data === expectedUrl;
         return isMatch ? (
-          <div className="flex items-center gap-1 text-xs text-green-400">
-            <CheckCircle className="w-4 h-4" />
+          <div className="flex items-center gap-1.5 text-xs text-green-400 font-medium bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-sm">
+            <CheckCircle className="w-3.5 h-3.5" />
             <span>Scannable &amp; Matches URL</span>
           </div>
         ) : (
-          <div className="flex items-center gap-1 text-xs text-orange-400" title={`Expected: ${expectedUrl}\nFound: ${validationResult.data}`}>
-            <AlertTriangle className="w-4 h-4" />
+          <div className="flex items-center gap-1.5 text-xs text-orange-400 font-medium bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-sm" title={`Expected: ${expectedUrl}\nFound: ${validationResult.data}`}>
+            <AlertTriangle className="w-3.5 h-3.5" />
             <span>URL Mismatch</span>
           </div>
         );
       case 'invalid':
         return (
-          <div className="flex items-center gap-1 text-xs text-red-400">
-            <XCircle className="w-4 h-4"/>
+          <div className="flex items-center gap-1.5 text-xs text-red-400 font-medium bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-sm">
+            <XCircle className="w-3.5 h-3.5"/>
             <span>Not Scannable</span>
           </div>
         );
@@ -97,27 +98,29 @@ const ImageCard: React.FC<ImageCardProps> = ({
   };
 
   return (
-    <div className="bg-base-100 p-3 rounded-xl shadow-md space-y-3 flex flex-col transition-all duration-300 ease-out-quad hover:shadow-xl hover:-translate-y-1">
+    <div className="bg-base-100 p-4 rounded-3xl shadow-lg space-y-4 flex flex-col transition-all duration-300 ease-out-quad hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.01] border border-base-300/50">
       <div 
-        className="relative aspect-square cursor-pointer group"
+        className="relative aspect-square cursor-pointer group overflow-hidden rounded-2xl"
         onClick={() => onImageClick(imageBase64)}
       >
         <img 
           src={`data:image/png;base64,${imageBase64}`} 
           alt={`Generated themed QR code ${index + 1}`} 
-          className="w-full h-full object-contain rounded-md"
+          className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-            <ScanLine className="w-12 h-12 text-white opacity-0 group-hover:opacity-80 transition-opacity" />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+            <div className="bg-white/20 backdrop-blur-md p-3 rounded-full opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                <ScanLine className="w-8 h-8 text-white" />
+            </div>
         </div>
-        <div className="absolute top-2 left-2 bg-black/60 text-white font-semibold text-xs px-2 py-1 rounded-full">
+        <div className="absolute top-3 left-3">
           <ValidationIndicator />
         </div>
       </div>
-      <div className="flex items-center justify-center gap-2 pt-2">
+      <div className="flex items-center justify-center gap-3 pt-1">
         <button
           onClick={() => onRegenerate(index)}
-          className="flex items-center justify-center gap-2 w-full font-semibold py-2 px-4 rounded-lg text-base-content-secondary transition-all duration-200 ease-in-out bg-base-300 hover:bg-base-300/80 hover:text-base-content disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center gap-2 w-full font-semibold py-3 px-4 rounded-xl text-base-content-secondary transition-all duration-200 ease-in-out bg-base-300/50 hover:bg-base-300 hover:text-base-content hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={validationResult?.status === 'pending' || isProcessing}
         >
           <RefreshCw className={`h-4 w-4 ${validationResult?.status === 'pending' || isProcessing ? 'animate-spin' : ''}`} />
@@ -125,7 +128,7 @@ const ImageCard: React.FC<ImageCardProps> = ({
         </button>
         <button
           onClick={handleDownload}
-          className="flex items-center justify-center gap-2 w-full font-semibold py-2 px-4 rounded-lg text-white transition-all duration-200 ease-in-out bg-brand-primary hover:bg-brand-primary/90"
+          className="flex items-center justify-center gap-2 w-full font-semibold py-3 px-4 rounded-xl text-white transition-all duration-200 ease-in-out bg-brand-primary hover:bg-brand-primary/90 hover:shadow-lg hover:shadow-brand-primary/30 hover:scale-105 active:scale-95"
         >
           <Download className="h-4 w-4" />
           Download
