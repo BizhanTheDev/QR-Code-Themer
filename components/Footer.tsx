@@ -44,10 +44,11 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           </div>
 
           <div>
-            <h4 className="font-bold text-base-content mb-5 text-lg">Company & Legal</h4>
+            <h4 className="font-bold text-base-content mb-5 text-lg">Support</h4>
             <ul className="space-y-3 text-sm text-base-content-secondary">
-              <li><button onClick={() => onNavigate('about')} className="hover:text-brand-primary transition-colors hover:translate-x-1 duration-200 inline-block">About</button></li>
+              <li><button onClick={() => onNavigate('about')} className="hover:text-brand-primary transition-colors hover:translate-x-1 duration-200 inline-block">About Us</button></li>
               <li><button onClick={() => onNavigate('blog')} className="hover:text-brand-primary transition-colors hover:translate-x-1 duration-200 inline-block">Blog</button></li>
+              <li><button onClick={() => onNavigate('contact')} className="hover:text-brand-primary transition-colors hover:translate-x-1 duration-200 inline-block">Contact</button></li>
               <li><button onClick={() => onNavigate('privacy')} className="hover:text-brand-primary transition-colors hover:translate-x-1 duration-200 inline-block">Privacy Policy</button></li>
               <li><button onClick={() => onNavigate('terms')} className="hover:text-brand-primary transition-colors hover:translate-x-1 duration-200 inline-block">Terms of Service</button></li>
             </ul>
@@ -56,9 +57,6 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         
         <div className="border-t border-base-300/50 mt-10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-base-content-secondary">
           <p>&copy; {new Date().getFullYear()} QR Code Themer. All rights reserved.</p>
-          <div className="flex gap-4">
-             {/* Social placeholders could go here */}
-          </div>
         </div>
       </div>
     </footer>

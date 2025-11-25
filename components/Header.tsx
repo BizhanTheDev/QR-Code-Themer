@@ -45,6 +45,7 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick, currentPage, onNavigat
             <NavLink page="use-cases" label="Use Cases" />
             <NavLink page="blog" label="Blog" />
             <NavLink page="about" label="About" />
+            <NavLink page="contact" label="Contact" />
             <div className="h-6 w-px bg-base-300 mx-2"></div>
             <button 
               onClick={onSettingsClick}
@@ -82,6 +83,7 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick, currentPage, onNavigat
             <NavLink page="use-cases" label="Use Cases" />
             <NavLink page="blog" label="Blog" />
             <NavLink page="about" label="About" />
+            <NavLink page="contact" label="Contact" />
           </div>
         </div>
       )}

@@ -18,8 +18,9 @@ import Gallery from './components/Gallery';
 import BlogPage from './components/pages/BlogPage';
 import AboutPage from './components/pages/AboutPage';
 import UseCasesPage from './components/pages/UseCasesPage';
+import ContactPage from './components/pages/ContactPage';
 import { PrivacyPage, TermsPage } from './components/pages/LegalPages';
-import { Loader2, Wand2, Zap, Sparkles, Smartphone, AlertTriangle, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Loader2, Wand2, Zap, Sparkles, Smartphone, AlertTriangle, ShieldAlert, CheckCircle2, Search, Palette, Download } from 'lucide-react';
 import { defaultGenerationConfig, defaultGradientConfig, defaultPatternConfig } from './config/defaults';
 import { hexToRgb } from './utils/colorUtils';
 import { setCookie, getCookie } from './utils/cookieUtils';
@@ -89,7 +90,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1);
-      if (hash && ['home', 'about', 'blog', 'use-cases', 'privacy', 'terms'].includes(hash)) {
+      if (hash && ['home', 'about', 'blog', 'use-cases', 'privacy', 'terms', 'contact'].includes(hash)) {
         setCurrentPage(hash as PageView);
       } else {
         setCurrentPage('home');
@@ -102,6 +103,21 @@ const App: React.FC = () => {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  // Update page title based on navigation
+  useEffect(() => {
+    const baseTitle = "QR Code Themer | Free AI Generator";
+    const titles: Record<string, string> = {
+        'home': baseTitle,
+        'about': "About Us | QR Code Themer",
+        'blog': "Blog & Insights | QR Code Themer",
+        'use-cases': "Use Cases | QR Code Themer",
+        'contact': "Contact Us | QR Code Themer",
+        'privacy': "Privacy Policy | QR Code Themer",
+        'terms': "Terms of Service | QR Code Themer",
+    };
+    document.title = titles[currentPage] || baseTitle;
+  }, [currentPage]);
 
   // Update hash when page changes via state
   const navigateTo = (page: PageView) => {
@@ -430,17 +446,10 @@ const App: React.FC = () => {
             setCookie(COOKIE_NAME, JSON.stringify({ count: newCount, lastReset: today }), 1);
         }
         
-        // Temporarily set specific card to loading is handled by isProcessing in component
-        // But we need to make sure we don't wipe the whole state.
-        
         const { data: qrCodeImageBase64, mimeType } = await getBaseQRCode();
         
         setAppState(AppState.LOADING_THEME);
-        // Skip theme generation if we have it? 
-        // For simplicity, we re-fetch briefly or we could cache the prompt. 
-        // Let's re-fetch to allow for randomization if the user changed seeds, but keeping the URL theme.
         const themeDescription = await getWebsiteTheme(websiteUrl, customApiKey || null);
-        
         const referenceImage = await getReferenceImage();
 
         setAppState(AppState.LOADING_QR_CODE);
@@ -457,7 +466,6 @@ const App: React.FC = () => {
           referenceImage
         );
         
-        // Update the specific index
         if (generatedImages) {
             const updatedImages = [...generatedImages];
             updatedImages[indexToRegenerate] = newImages[0];
@@ -477,13 +485,11 @@ const App: React.FC = () => {
                 return newRes;
             });
             
-            // Update the history item
             setHistory(prev => {
                 const newHist = [...prev];
-                // Assume the most recent history item corresponds to the current session if URL matches
                 if (newHist.length > 0 && newHist[0].url === websiteUrl) {
                     newHist[0].images = updatedImages;
-                    saveGenerationToHistory(newHist[0]); // This is a bit simplistic, usually history is immutable, but for "regenerate" it makes sense to update current view
+                    saveGenerationToHistory(newHist[0]);
                 }
                 return newHist;
             });
@@ -495,7 +501,7 @@ const App: React.FC = () => {
         console.error(error);
         const errMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
         showToast(`Regeneration failed: ${errMessage}`, 'warning');
-        setAppState(AppState.SUCCESS); // Revert to success to show existing images
+        setAppState(AppState.SUCCESS);
       }
     });
   }, [websiteUrl, generatedImages, generationConfig, extraPrompt, customApiKey, getBaseQRCode, getReferenceImage, dailyGenerationsLeft, readability, styleStrength, creativity, addTask, userDefinedLimit, sessionGenerationCount]);
@@ -607,8 +613,8 @@ const App: React.FC = () => {
             {/* Gallery Section */}
             <Gallery />
 
-            {/* SEO Content Section */}
-            <section className="mb-16">
+            {/* SEO Content Section: Features */}
+            <section className="mb-20">
                 <div className="text-center mb-10">
                     <h2 className="text-4xl font-bold text-base-content mb-3 tracking-tight">Why Use This Tool?</h2>
                     <p className="text-lg text-base-content-secondary max-w-2xl mx-auto">
@@ -645,12 +651,95 @@ const App: React.FC = () => {
                     </div>
                 </div>
             </section>
+
+             {/* SEO Content Section: How it Works */}
+            <section className="mb-20">
+                <div className="bg-base-200/50 rounded-3xl p-8 md:p-12 border border-base-300">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold text-base-content mb-4">How It Works</h2>
+                        <p className="text-base-content-secondary max-w-2xl mx-auto">
+                            We combine traditional QR code technology with state-of-the-art generative AI to create something entirely new.
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <div className="text-center relative">
+                            <div className="w-12 h-12 bg-base-100 rounded-full flex items-center justify-center text-xl font-bold text-brand-primary border-2 border-brand-primary mx-auto mb-4 shadow-lg z-10 relative">1</div>
+                            <h3 className="font-bold text-lg mb-2">Input URL</h3>
+                            <p className="text-sm text-base-content-secondary">Enter the destination URL. We generate a high-error-correction base QR code.</p>
+                            <div className="hidden md:block absolute top-6 left-1/2 w-full h-0.5 bg-base-300 -z-0"></div>
+                        </div>
+                        <div className="text-center relative">
+                            <div className="w-12 h-12 bg-base-100 rounded-full flex items-center justify-center text-xl font-bold text-brand-primary border-2 border-brand-primary mx-auto mb-4 shadow-lg z-10 relative">2</div>
+                            <h3 className="font-bold text-lg mb-2">Analyze Theme</h3>
+                            <p className="text-sm text-base-content-secondary">Our AI scans your website to understand your brand's color palette and visual style.</p>
+                            <div className="hidden md:block absolute top-6 left-1/2 w-full h-0.5 bg-base-300 -z-0"></div>
+                        </div>
+                         <div className="text-center relative">
+                            <div className="w-12 h-12 bg-base-100 rounded-full flex items-center justify-center text-xl font-bold text-brand-primary border-2 border-brand-primary mx-auto mb-4 shadow-lg z-10 relative">3</div>
+                            <h3 className="font-bold text-lg mb-2">Generate Art</h3>
+                            <p className="text-sm text-base-content-secondary">Stable Diffusion models hallucinate a design that matches your brand while keeping the code structure.</p>
+                            <div className="hidden md:block absolute top-6 left-1/2 w-full h-0.5 bg-base-300 -z-0"></div>
+                        </div>
+                         <div className="text-center relative">
+                            <div className="w-12 h-12 bg-base-100 rounded-full flex items-center justify-center text-xl font-bold text-brand-primary border-2 border-brand-primary mx-auto mb-4 shadow-lg z-10 relative">4</div>
+                            <h3 className="font-bold text-lg mb-2">Validate</h3>
+                            <p className="text-sm text-base-content-secondary">We run a simulated scan on the result. If it doesn't scan, we warn you immediately.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+             {/* SEO Content Section: FAQ */}
+             <section className="mb-16">
+                 <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold text-base-content mb-4">Frequently Asked Questions</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                    <div className="bg-base-100/80 backdrop-blur-md p-6 rounded-2xl border border-base-300 shadow-sm hover:shadow-md transition-all">
+                        <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+                             <CheckCircle2 className="w-5 h-5 text-green-500" />
+                             Is this really free?
+                        </h3>
+                        <p className="text-base-content-secondary text-sm">
+                            Yes! You get 20 free generations every single day. We don't watermark the images, so you can use them commercially instantly.
+                        </p>
+                    </div>
+                    <div className="bg-base-100/80 backdrop-blur-md p-6 rounded-2xl border border-base-300 shadow-sm hover:shadow-md transition-all">
+                        <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+                             <Search className="w-5 h-5 text-blue-500" />
+                             Will these scan on all phones?
+                        </h3>
+                        <p className="text-base-content-secondary text-sm">
+                            We use high-level error correction (Level H). Most modern iPhone and Android cameras scan them easily. We recommend testing them before printing thousands of copies.
+                        </p>
+                    </div>
+                    <div className="bg-base-100/80 backdrop-blur-md p-6 rounded-2xl border border-base-300 shadow-sm hover:shadow-md transition-all">
+                        <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+                             <Palette className="w-5 h-5 text-purple-500" />
+                             Can I use my own logo?
+                        </h3>
+                        <p className="text-base-content-secondary text-sm">
+                            Yes. Upload your logo in the "Reference Image" section. The AI will attempt to weave your logo's shape and colors into the QR code pattern.
+                        </p>
+                    </div>
+                     <div className="bg-base-100/80 backdrop-blur-md p-6 rounded-2xl border border-base-300 shadow-sm hover:shadow-md transition-all">
+                        <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+                             <Download className="w-5 h-5 text-orange-500" />
+                             Do the codes expire?
+                        </h3>
+                        <p className="text-base-content-secondary text-sm">
+                            No. These are static QR codes. They contain the direct link you provided. As long as your website is online, the code will work forever.
+                        </p>
+                    </div>
+                </div>
+             </section>
           </div>
         )}
 
         {currentPage === 'blog' && <BlogPage onNavigate={navigateTo} />}
         {currentPage === 'about' && <AboutPage onNavigate={navigateTo} />}
         {currentPage === 'use-cases' && <UseCasesPage onNavigate={navigateTo} />}
+        {currentPage === 'contact' && <ContactPage onNavigate={navigateTo} />}
         {currentPage === 'privacy' && <PrivacyPage />}
         {currentPage === 'terms' && <TermsPage />}
 

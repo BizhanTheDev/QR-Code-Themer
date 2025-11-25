@@ -17,7 +17,7 @@ export type QRShape = 'squares' | 'circles' | 'diamonds' | 'fluid';
 
 export type ValidationStatus = 'pending' | 'valid' | 'invalid';
 
-export type PageView = 'home' | 'about' | 'blog' | 'use-cases' | 'privacy' | 'terms';
+export type PageView = 'home' | 'about' | 'blog' | 'use-cases' | 'privacy' | 'terms' | 'contact';
 
 export interface ValidationResult {
   status: ValidationStatus;
